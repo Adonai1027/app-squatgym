@@ -73,6 +73,10 @@ export const productosIniciales: Product[] = [
   { id: 6, nombre: "Yogurt Griego", precio: 600, stock: 8, minimo: 6, imagen: "🥣" },
   { id: 7, nombre: "Café Express", precio: 400, stock: 30, minimo: 20, imagen: "☕" },
   { id: 8, nombre: "Galletas Integrales", precio: 350, stock: 12, minimo: 10, imagen: "🍪" },
+  { id: 9, nombre: "Toalla Deportiva", precio: 3500, stock: 5, minimo: 5, imagen: "🧻" },
+  { id: 10, nombre: "Venda Elástica", precio: 1800, stock: 10, minimo: 5, imagen: "🩹" },
+  { id: 11, nombre: "Agua Mineral 1L", precio: 800, stock: 20, minimo: 15, imagen: "💧" },
+  { id: 12, nombre: "Pre-Entreno", precio: 2500, stock: 4, minimo: 10, imagen: "⚡" },
 ]
 
 export const planesIniciales: Plan[] = [
@@ -91,6 +95,10 @@ export const alumnosIniciales: Alumno[] = [
   { id: "A001", dni: "35123456", nombre: "Martín Palermo", planId: "PL1", deuda: 25000, fechaVencimiento: "2026-05-05" },
   { id: "A002", dni: "40987654", nombre: "Lionel Messi", planId: "PL2", deuda: 0, fechaVencimiento: "2026-05-20" },
   { id: "A003", dni: "38111222", nombre: "Emanuel Ginóbili", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-04-30" },
+  { id: "A004", dni: "42333444", nombre: "Luciana Aymar", planId: "PL1", deuda: 0, fechaVencimiento: "2026-06-15" },
+  { id: "A005", dni: "31555666", nombre: "Gabriela Sabatini", planId: "PL2", deuda: 36000, fechaVencimiento: "2026-03-10" },
+  { id: "A006", dni: "39888777", nombre: "Juan Martín del Potro", planId: "PL1", deuda: 0, fechaVencimiento: "2026-05-18" },
+  { id: "A007", dni: "45112233", nombre: "Julián Álvarez", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-05-02" },
 ]
 
 export const recibosIniciales: Recibo[] = [

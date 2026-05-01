@@ -227,9 +227,9 @@ export function Dashboard({
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* ── Sidebar ── */}
-      <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col fixed h-full z-20">
+      <aside className="w-full md:w-64 bg-sidebar border-b md:border-r md:border-b-0 border-sidebar-border flex flex-col md:fixed h-auto md:h-full z-20">
         {/* Logo */}
         <div className="p-5 border-b border-sidebar-border">
           <button
@@ -308,7 +308,7 @@ export function Dashboard({
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 ml-64 flex flex-col min-h-screen">
+      <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Top bar with non-intrusive alert bell */}
         {userRole !== "alumno" && (
           <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-8 py-3 flex justify-end items-center">
@@ -638,7 +638,7 @@ function AdminDashboard({
       </div>
 
       {/* KPI strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
@@ -755,7 +755,7 @@ function AdminDashboard({
         <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
           Accesos Rápidos
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <QuickCard
             icon={<CreditCard className="w-7 h-7 text-[#C2D8C4]" />}
             title="Pagos a Proveedores"

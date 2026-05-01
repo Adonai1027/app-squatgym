@@ -199,7 +199,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
               <CardContent className="space-y-6">
                 <div>
                   <p className="text-sm font-medium mb-2">Aplicar Promoción</p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {promociones.filter(p => p.activa).map(promo => (
                       <button
                         key={promo.id}
@@ -217,7 +217,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
 
                 <div>
                   <p className="text-sm font-medium mb-2">Medio de Pago</p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     {["Efectivo", "Tarjeta", "Transferencia"].map((method: any) => (
                       <button
                         key={method}

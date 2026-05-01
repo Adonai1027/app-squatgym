@@ -973,7 +973,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               <RadioGroup
                 value={paymentMethod}
                 onValueChange={setPaymentMethod}
-                className="grid grid-cols-3 gap-3"
+                className="grid grid-cols-1 sm:grid-cols-3 gap-3"
               >
                 <div>
                   <RadioGroupItem value="efectivo" id="pos-efectivo" className="peer sr-only" />
@@ -1176,7 +1176,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               <RadioGroup
                 value={orderType}
                 onValueChange={(value) => setOrderType(value as "externo" | "interno")}
-                className="grid grid-cols-2 gap-4"
+                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
               >
                 <div>
                   <RadioGroupItem value="externo" id="externo" className="peer sr-only" />
