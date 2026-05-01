@@ -1,0 +1,60 @@
+export interface Proveedor {
+  id: string
+  nombre: string
+  rubro: string
+  contacto: string
+  telefono: string
+  email: string
+}
+
+export interface PagoPendiente {
+  id: string
+  proveedor: Proveedor
+  concepto: string
+  monto: number
+  fechaVencimiento: string
+  diasAtraso: number
+  factura?: string
+}
+
+export interface Product {
+  id: number
+  nombre: string
+  precio: number
+  stock: number
+  minimo: number
+  imagen: string
+  pedidoEnCurso?: boolean
+}
+
+export interface Plan {
+  id: string
+  nombre: string
+  precio: number
+  descripcion: string
+}
+
+export interface Promocion {
+  id: string
+  codigo: string
+  descuentoPorcentaje: number
+  activa: boolean
+}
+
+export interface Alumno {
+  id: string
+  dni: string
+  nombre: string
+  planId: string
+  deuda: number
+  fechaVencimiento: string
+}
+
+export interface Recibo {
+  id: string
+  alumnoId: string
+  fecha: string
+  monto: number
+  metodo: "Efectivo" | "Tarjeta" | "Transferencia" | "QR"
+  concepto: string
+}
