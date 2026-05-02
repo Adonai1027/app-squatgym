@@ -164,6 +164,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   
   const [view, setView] = useState<KioscoView>(initialView || "hub")
   const [carrito, setCarrito] = useState<CartItem[]>([])
+  const [attemptingOrder, setAttemptingOrder] = useState(openOrderDialogOnMount || false)
   const [showOrderDialog, setShowOrderDialog] = useState((openOrderDialogOnMount && hasShortage) || false)
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false)
   const [isPreventiveOrder, setIsPreventiveOrder] = useState(false)
@@ -786,7 +787,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       )}
 
       {/* Stock View */}
-      {view === "stock" && openOrderDialogOnMount && outOfStockProducts.length === 0 && lowStockProducts.length === 0 && !isPreventiveOrder ? (
+      {view === "stock" && attemptingOrder && outOfStockProducts.length === 0 && lowStockProducts.length === 0 && !isPreventiveOrder ? (
         <div className="flex flex-col items-center justify-center space-y-6 py-12 animate-in fade-in zoom-in-95 duration-300">
           <div className="w-24 h-24 rounded-full bg-[#C2D8C4]/20 flex items-center justify-center">
             <Check className="w-12 h-12 text-[#C2D8C4]" />
@@ -798,7 +799,13 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <Button variant="outline" onClick={onBack} className="min-w-[200px]">
+            <Button variant="outline" onClick={() => {
+              if (openOrderDialogOnMount) {
+                onBack()
+              } else {
+                setAttemptingOrder(false)
+              }
+            }} className="min-w-[200px]">
               Volver
             </Button>
             {userRole !== "secretaria" && (
@@ -883,7 +890,13 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               <CardTitle>Inventario Completo</CardTitle>
               {userRole !== "secretaria" && (
                 <Button
-                  onClick={() => setShowOrderDialog(true)}
+                  onClick={() => {
+                    if (!hasShortage) {
+                      setAttemptingOrder(true)
+                    } else {
+                      setShowOrderDialog(true)
+                    }
+                  }}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Truck className="w-4 h-4 mr-2" />
