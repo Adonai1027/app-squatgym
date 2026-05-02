@@ -236,6 +236,11 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     numero: string
   } | null>(null)
 
+  // Auditoria state
+  const [showAuditoriaDialog, setShowAuditoriaDialog] = useState(false)
+  const [auditoriaProduct, setAuditoriaProduct] = useState<number | "">("")
+  const [auditoriaPhysicalCount, setAuditoriaPhysicalCount] = useState<string>("")
+
   const filteredPosProductos = useMemo(() => {
     const q = posSearch.toLowerCase().trim()
     if (!q) return productos
@@ -1109,32 +1114,42 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
           )}
 
           <Card className="border-border bg-card">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle>Inventario Completo</CardTitle>
-              {userRole !== "secretaria" && (
-                <Button
-                  onClick={() => {
-                    if (selectedProducts.length === 0 && hasShortage) {
-                      const shortageIds = [...outOfStockProducts, ...lowStockProducts].map(p => p.id)
-                      setSelectedProducts(shortageIds)
-                      const initialQuantities: Record<number, number> = {}
-                      shortageIds.forEach(id => {
-                        const p = productos.find(x => x.id === id)
-                        if (p) initialQuantities[id] = p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20
-                      })
-                      setPreventiveQuantities(initialQuantities)
-                    } else if (selectedProducts.length === 0 && !hasShortage) {
-                      showToast("Seleccioná al menos un producto de la tabla.", "info")
-                      return
-                    }
-                    setShowOrderDialog(true)
-                  }}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <Truck className="w-4 h-4 mr-2" />
-                  Generar Pedido
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" onClick={() => {
+                  setAuditoriaProduct("")
+                  setAuditoriaPhysicalCount("")
+                  setShowAuditoriaDialog(true)
+                }}>
+                  <ClipboardList className="w-4 h-4 mr-2" />
+                  Auditar Stock
                 </Button>
-              )}
+                {userRole !== "secretaria" && (
+                  <Button
+                    onClick={() => {
+                      if (selectedProducts.length === 0 && hasShortage) {
+                        const shortageIds = [...outOfStockProducts, ...lowStockProducts].map(p => p.id)
+                        setSelectedProducts(shortageIds)
+                        const initialQuantities: Record<number, number> = {}
+                        shortageIds.forEach(id => {
+                          const p = productos.find(x => x.id === id)
+                          if (p) initialQuantities[id] = p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20
+                        })
+                        setPreventiveQuantities(initialQuantities)
+                      } else if (selectedProducts.length === 0 && !hasShortage) {
+                        showToast("Seleccioná al menos un producto de la tabla.", "info")
+                        return
+                      }
+                      setShowOrderDialog(true)
+                    }}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Generar Pedido
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Filtros y ordenamiento */}
@@ -1753,6 +1768,107 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Aceptar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Auditoría de Stock */}
+      <Dialog open={showAuditoriaDialog} onOpenChange={setShowAuditoriaDialog}>
+        <DialogContent className="max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-foreground">
+              <ClipboardList className="w-5 h-5 text-primary" />
+              Auditoría de Inventario
+            </DialogTitle>
+            <DialogDescription>
+              Registrá el conteo físico real. Si difiere del sistema, se actualizará el stock y se emitirá una alerta de inconsistencia.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-foreground">Producto</Label>
+              <Select 
+                value={auditoriaProduct.toString()} 
+                onValueChange={(val) => setAuditoriaProduct(Number(val))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar producto..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {productos.map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.imagen} {p.nombre} (Sistema: {p.stock})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {auditoriaProduct !== "" && (
+              <div className="space-y-2">
+                <Label className="text-foreground">Conteo Físico Real</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={auditoriaPhysicalCount}
+                  onChange={(e) => setAuditoriaPhysicalCount(e.target.value)}
+                  placeholder="Ej: 5"
+                />
+              </div>
+            )}
+
+            {auditoriaProduct !== "" && auditoriaPhysicalCount !== "" && (
+              <div className={`p-3 rounded-md text-sm border ${
+                Number(auditoriaPhysicalCount) === productos.find(p => p.id === auditoriaProduct)?.stock
+                  ? "bg-primary/10 border-primary/20 text-primary"
+                  : "bg-destructive/10 border-destructive/20 text-destructive"
+              }`}>
+                {Number(auditoriaPhysicalCount) === productos.find(p => p.id === auditoriaProduct)?.stock ? (
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    Coincide perfectamente con el sistema.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2 font-semibold">
+                      <AlertOctagon className="w-4 h-4" />
+                      Inconsistencia detectada
+                    </div>
+                    <span>Diferencia: {Number(auditoriaPhysicalCount) - (productos.find(p => p.id === auditoriaProduct)?.stock || 0)} unidades.</span>
+                    <span>El stock se actualizará a {auditoriaPhysicalCount}.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowAuditoriaDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              disabled={auditoriaProduct === "" || auditoriaPhysicalCount === ""}
+              onClick={() => {
+                const prodId = Number(auditoriaProduct)
+                const physical = Number(auditoriaPhysicalCount)
+                const prod = productos.find(p => p.id === prodId)
+                
+                if (prod && prod.stock !== physical) {
+                  // Registrar inconsistencia
+                  const diff = physical - prod.stock
+                  setProductos(productos.map(p => p.id === prodId ? { ...p, stock: physical } : p))
+                  setShowAuditoriaDialog(false)
+                  showToast(`Inconsistencia de inventario registrada en ${prod.nombre}. Diferencia: ${diff > 0 ? '+' : ''}${diff}.`, "info")
+                } else {
+                  setShowAuditoriaDialog(false)
+                  showToast("Auditoría correcta. Sin diferencias.", "success")
+                }
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Confirmar Auditoría
             </Button>
           </DialogFooter>
         </DialogContent>
