@@ -58,8 +58,8 @@ type View =
   | "consola-configuracion"
   | "registro-pagos"
 
-function getAlertCount(pagos: PagoPendiente[], productos: Product[]) {
-  const criticos = pagos.filter((p) => p.diasAtraso >= 14)
+function getAlertCount(pagos: PagoPendiente[], productos: Product[], role: UserRole) {
+  const criticos = role === "secretaria" ? [] : pagos.filter((p) => p.diasAtraso >= 14)
   const stockBajo = productos.filter((p) => p.stock < p.minimo && !p.pedidoEnCurso)
   return criticos.length + stockBajo.length
 }
@@ -347,9 +347,9 @@ export function Dashboard({
                 className="relative p-2 rounded-lg hover:bg-secondary/50 transition-colors"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                {getAlertCount(pagosPendientes, productos) > 0 && (
+                {getAlertCount(pagosPendientes, productos, userRole) > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">
-                    {getAlertCount(pagosPendientes, productos)}
+                    {getAlertCount(pagosPendientes, productos, userRole)}
                   </span>
                 )}
               </button>
@@ -363,7 +363,7 @@ export function Dashboard({
                     </button>
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-border">
-                    {pagosPendientes.filter((p) => p.diasAtraso >= 14).map((p) => (
+                    {userRole !== "secretaria" && pagosPendientes.filter((p) => p.diasAtraso >= 14).map((p) => (
                       <button
                         key={p.id}
                         className="w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors flex gap-3 items-start"
@@ -395,7 +395,7 @@ export function Dashboard({
                         </div>
                       </button>
                     ))}
-                    {getAlertCount(pagosPendientes, productos) === 0 && (
+                    {getAlertCount(pagosPendientes, productos, userRole) === 0 && (
                       <p className="text-center text-sm text-muted-foreground py-6">
                         Sin alertas activas
                       </p>

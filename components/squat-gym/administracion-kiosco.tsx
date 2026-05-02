@@ -162,6 +162,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const [carrito, setCarrito] = useState<CartItem[]>([])
   const [showOrderDialog, setShowOrderDialog] = useState(openOrderDialogOnMount || false)
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false)
+  const [isPreventiveOrder, setIsPreventiveOrder] = useState(false)
   const [orderType, setOrderType] = useState<"externo" | "interno">("externo")
   const [selectedProducts, setSelectedProducts] = useState<number[]>([])
   const [orderDetails, setOrderDetails] = useState({ proveedor: "", sede: "", notas: "" })
@@ -774,7 +775,48 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       )}
 
       {/* Stock View */}
-      {view === "stock" && (
+      {view === "stock" && openOrderDialogOnMount && outOfStockProducts.length === 0 && lowStockProducts.length === 0 && !isPreventiveOrder ? (
+        <div className="flex flex-col items-center justify-center space-y-6 py-12 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-24 h-24 rounded-full bg-[#C2D8C4]/20 flex items-center justify-center">
+            <Check className="w-12 h-12 text-[#C2D8C4]" />
+          </div>
+          <div className="text-center space-y-2">
+            <h3 className="text-2xl font-bold text-foreground">¡Excelente!</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              Todos los productos están por encima del stock mínimo.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <Button variant="outline" onClick={onBack} className="min-w-[200px]">
+              Volver
+            </Button>
+            {userRole !== "secretaria" && (
+              <Button 
+                onClick={() => setIsPreventiveOrder(true)}
+                className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 min-w-[200px]"
+              >
+                Realizar Pedido Preventivo
+              </Button>
+            )}
+          </div>
+          
+          {/* Historial de Reposición Reciente */}
+          <div className="w-full max-w-md mt-12 bg-secondary/30 rounded-xl p-6 border border-border">
+            <div className="flex items-center gap-2 mb-4 text-muted-foreground">
+              <Truck className="w-4 h-4" />
+              <h4 className="font-medium text-sm">Última reposición confirmada</h4>
+            </div>
+            <div className="space-y-1">
+               <p className="text-sm font-semibold text-foreground">Encargado General (Admin)</p>
+               <p className="text-xs text-muted-foreground">2026-05-01 · 09:30 AM</p>
+               <p className="text-xs text-muted-foreground mt-2">Batido Proteico (x10), Agua Mineral (x20)</p>
+               <Button variant="link" className="px-0 h-auto text-xs text-[#C2D8C4] mt-2 font-medium">
+                 Ver comprobante →
+               </Button>
+            </div>
+          </div>
+        </div>
+      ) : view === "stock" && (
         <div className="space-y-6">
           {/* Inventory Alerts */}
           {(outOfStockProducts.length > 0 || lowStockProducts.length > 0) && (
