@@ -169,8 +169,19 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false)
   const [isPreventiveOrder, setIsPreventiveOrder] = useState(false)
   const [orderType, setOrderType] = useState<"externo" | "interno">("externo")
-  const [selectedProducts, setSelectedProducts] = useState<number[]>([])
-  const [preventiveQuantities, setPreventiveQuantities] = useState<Record<number, number>>({})
+  const shortageProducts = productos.filter(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
+  const initialShortageIds = shortageProducts.map(p => p.id)
+  const initialQuantities: Record<number, number> = {}
+  shortageProducts.forEach(p => {
+    initialQuantities[p.id] = p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20
+  })
+
+  const [selectedProducts, setSelectedProducts] = useState<number[]>(
+    openOrderDialogOnMount && hasShortage ? initialShortageIds : []
+  )
+  const [preventiveQuantities, setPreventiveQuantities] = useState<Record<number, number>>(
+    openOrderDialogOnMount && hasShortage ? initialQuantities : {}
+  )
   const [orderDetails, setOrderDetails] = useState({ proveedor: "", sede: "", notas: "" })
   const [ventas, setVentas] = useState<Venta[]>(ventasHoy)
 
@@ -960,8 +971,19 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                       return (
                         <TableRow
                           key={producto.id}
-                          className={`border-border ${isOutOfStock ? "bg-destructive/5" : isLowStock ? "bg-warning/5" : ""
-                            }`}
+                          className={`border-border cursor-pointer select-none ${isOutOfStock ? "bg-destructive/5" : isLowStock ? "bg-warning/5" : ""} ${userRole !== "secretaria" ? "hover:bg-secondary/50" : ""}`}
+                          onClick={() => {
+                            if (userRole === "secretaria") return
+                            const isSelected = selectedProducts.includes(producto.id)
+                            if (isSelected) {
+                              setSelectedProducts(selectedProducts.filter(id => id !== producto.id))
+                            } else {
+                              setSelectedProducts([...selectedProducts, producto.id])
+                              if (!preventiveQuantities[producto.id]) {
+                                setPreventiveQuantities({...preventiveQuantities, [producto.id]: 20})
+                              }
+                            }
+                          }}
                         >
                           {userRole !== "secretaria" && (
                             <TableCell>
@@ -1019,7 +1041,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                             )}
                           </TableCell>
                           {userRole !== "secretaria" && (
-                            <TableCell className="text-center">
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
                               {selectedProducts.includes(producto.id) ? (
                                 <Input 
                                   type="number"
