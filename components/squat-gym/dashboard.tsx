@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Zap,
   Settings,
+  Menu,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,14 +75,21 @@ export function Dashboard({
   onLogout, userRole, pagosPendientes, setPagosPendientes, productos, setProductos,
   alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos 
 }: DashboardProps) {
-  const [currentView, setCurrentView] = useState<View>(getInitialView(userRole))
+  const [currentView, _setCurrentView] = useState<View>(getInitialView(userRole))
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
   const [alertPanelOpen, setAlertPanelOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const setCurrentView = (v: View) => {
+    _setCurrentView(v)
+    setMobileMenuOpen(false)
+  }
 
   // Reset view whenever the logged-in role changes (logout → new login with different role)
   useEffect(() => {
-    setCurrentView(getInitialView(userRole))
+    _setCurrentView(getInitialView(userRole))
     setAlertPanelOpen(false)
+    setMobileMenuOpen(false)
   }, [userRole])
 
   useEffect(() => {
@@ -227,9 +235,17 @@ export function Dashboard({
   }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+    <div className="min-h-screen flex bg-background">
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm" 
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="w-full md:w-64 bg-sidebar border-b md:border-r md:border-b-0 border-sidebar-border flex flex-col md:fixed h-auto md:h-full z-20">
+      <aside className={`w-64 bg-sidebar border-r border-sidebar-border flex flex-col fixed h-full z-50 transition-transform duration-300 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         {/* Logo */}
         <div className="p-5 border-b border-sidebar-border">
           <button
@@ -310,8 +326,21 @@ export function Dashboard({
       {/* ── Main ── */}
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Top bar with non-intrusive alert bell */}
-        {userRole !== "alumno" && (
-          <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-8 py-3 flex justify-end items-center">
+        {/* Top bar with non-intrusive alert bell */}
+        <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 md:px-8 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-3 md:hidden">
+            <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="w-5 h-5 text-foreground" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Dumbbell className="w-5 h-5 text-[#C2D8C4]" />
+              <span className="font-bold text-foreground">SquatGym</span>
+            </div>
+          </div>
+          
+          <div className="flex-1 hidden md:block" />
+
+          {userRole !== "alumno" && (
             <div className="relative">
               <button
                 onClick={() => setAlertPanelOpen(!alertPanelOpen)}
@@ -375,8 +404,8 @@ export function Dashboard({
                 </div>
               )}
             </div>
-          </header>
-        )}
+          )}
+        </header>
 
         <div className="p-8 flex-1">
           {renderContent()}
