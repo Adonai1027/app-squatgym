@@ -36,6 +36,7 @@ import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo } from "./types
 interface DashboardProps {
   onLogout: () => void
   userRole: UserRole
+  activeAlumnoIndex: number
   pagosPendientes: PagoPendiente[]
   setPagosPendientes: (p: PagoPendiente[]) => void
   productos: Product[]
@@ -73,9 +74,9 @@ function getInitialView(role: UserRole): View {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-export function Dashboard({ 
-  onLogout, userRole, pagosPendientes, setPagosPendientes, productos, setProductos,
-  alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos 
+export function Dashboard({
+  onLogout, userRole, activeAlumnoIndex, pagosPendientes, setPagosPendientes, productos, setProductos,
+  alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos
 }: DashboardProps) {
   const [currentView, _setCurrentView] = useState<View>(getInitialView(userRole))
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
@@ -117,13 +118,13 @@ export function Dashboard({
       if (a.id === alumnoId) {
         let newDeuda = a.deuda - monto
         if (newDeuda < 0) newDeuda = 0
-        
+
         let newVencimiento = a.fechaVencimiento
         if (newDeuda === 0) {
-           // Add 30 days if paid in full
-           const date = new Date(a.fechaVencimiento)
-           date.setDate(date.getDate() + 30)
-           newVencimiento = date.toISOString()
+          // Add 30 days if paid in full
+          const date = new Date(a.fechaVencimiento)
+          date.setDate(date.getDate() + 30)
+          newVencimiento = date.toISOString()
         }
 
         return { ...a, deuda: newDeuda, fechaVencimiento: newVencimiento }
@@ -195,11 +196,11 @@ export function Dashboard({
           />
         )
       case "portal-socio": {
-        const currentUserAlumno = alumnos[0] // Simulate logged in student A001
+        const currentUserAlumno = alumnos[activeAlumnoIndex] ?? alumnos[0]
         const currentPlan = planes.find(p => p.id === currentUserAlumno.planId)!
         const studentRecibos = recibos.filter(r => r.alumnoId === currentUserAlumno.id)
         return (
-          <PortalSocio 
+          <PortalSocio
             alumno={currentUserAlumno}
             plan={currentPlan}
             recibos={studentRecibos}
@@ -209,14 +210,14 @@ export function Dashboard({
       }
       case "consola-configuracion":
         return (
-          <ConsolaConfiguracion 
+          <ConsolaConfiguracion
             planes={planes}
             promociones={promociones}
           />
         )
       case "registro-pagos":
         return (
-          <RegistroPagos 
+          <RegistroPagos
             alumnos={alumnos}
             planes={planes}
             promociones={promociones}
@@ -240,8 +241,8 @@ export function Dashboard({
     <div className="min-h-screen flex bg-background">
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm" 
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -339,7 +340,7 @@ export function Dashboard({
               <span className="font-bold text-foreground">SquatGym</span>
             </div>
           </div>
-          
+
           <div className="flex-1 hidden md:block" />
 
           {userRole !== "alumno" && (
@@ -455,7 +456,7 @@ function SecretariaNav({
         label="Cobro de Cuotas"
         onClick={() => setCurrentView("registro-pagos")}
       />
-      
+
       <div className="pt-3 pb-1 px-2 mt-4">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Kiosco
@@ -589,7 +590,7 @@ function AdministradorNav({
         label="Dashboard"
         onClick={() => setCurrentView("dashboard")}
       />
-      
+
       <div className="pt-3 pb-1 px-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Gestión Global

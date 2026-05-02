@@ -9,47 +9,62 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 export type UserRole = "alumno" | "secretaria" | "encargado" | "administrador"
 
 interface LoginScreenProps {
-  onLogin: (role: UserRole) => void
+  onLogin: (role: UserRole, alumnoIndex?: number) => void
+  alumnoCount: number
+  nextAlumnoIndex: number
 }
 
-// Credenciales: 
-// - user/user (Alumno)
+// Credenciales:
+// - user/user (Alumno) ← rota entre alumnos en cada login
+// - [8 dígitos numéricos]/[mismo dni] (Alumno) ← rota entre alumnos
 // - sec/sec (Secretaria)
 // - enc/enc (Encargado)
 // - admin/admin (Administrador)
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
+const EIGHT_DIGIT_REGEX = /^\d{8}$/
+
+export function LoginScreen({ onLogin, alumnoCount, nextAlumnoIndex }: LoginScreenProps) {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError(false)
+    setError(null)
 
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    // Role-based authentication
-    if (username === "user" && password === "user") {
-      onLogin("alumno")
+    // Validate DNI (8 numeric digits) — same value for user and password
+    if (EIGHT_DIGIT_REGEX.test(username) && username === password) {
+      onLogin("alumno", nextAlumnoIndex % alumnoCount)
+    } else if (EIGHT_DIGIT_REGEX.test(username) && password !== username) {
+      // Typed a valid DNI format but wrong password
+      setError("Contraseña incorrecta para el DNI ingresado.")
+      setIsLoading(false)
+    } else if (username === "user" && password === "user") {
+      onLogin("alumno", nextAlumnoIndex % alumnoCount)
     } else if (username === "sec" && password === "sec") {
       onLogin("secretaria")
     } else if (username === "enc" && password === "enc") {
       onLogin("encargado")
     } else if (username === "admin" && password === "admin") {
       onLogin("administrador")
+    } else if (username.length === 8 && !EIGHT_DIGIT_REGEX.test(username)) {
+      // 8 chars but not all digits
+      setError("El usuario debe ser un DNI con exactamente 8 dígitos numéricos.")
+      setIsLoading(false)
     } else {
-      setError(true)
+      setError("Usuario o contraseña incorrectos.")
       setIsLoading(false)
     }
   }
 
   const handleRetry = () => {
-    setError(false)
+    setError(null)
     setUsername("")
     setPassword("")
   }
@@ -73,9 +88,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium text-destructive">Credenciales incorrectas</p>
+                  <p className="font-medium text-destructive">Acceso denegado</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    El usuario o contraseña ingresados no son válidos.
+                    {error}
                   </p>
                 </div>
               </div>

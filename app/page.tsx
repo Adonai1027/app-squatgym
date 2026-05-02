@@ -17,8 +17,17 @@ export default function Home() {
   const [promociones, setPromociones] = useState<Promocion[]>(promocionesIniciales)
   const [recibos, setRecibos] = useState<Recibo[]>(recibosIniciales)
 
-  const handleLogin = (role: UserRole) => {
+  // Tracks which alumno will log in next — rotates through all alumnos
+  const [nextAlumnoIndex, setNextAlumnoIndex] = useState(0)
+  const [activeAlumnoIndex, setActiveAlumnoIndex] = useState(0)
+
+  const handleLogin = (role: UserRole, alumnoIndex?: number) => {
     setUserRole(role)
+    if (role === "alumno" && alumnoIndex !== undefined) {
+      setActiveAlumnoIndex(alumnoIndex)
+      // Advance the pointer for the NEXT alumno login
+      setNextAlumnoIndex((alumnoIndex + 1) % alumnosIniciales.length)
+    }
     setIsAuthenticated(true)
   }
 
@@ -27,13 +36,20 @@ export default function Home() {
   }
 
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        alumnoCount={alumnosIniciales.length}
+        nextAlumnoIndex={nextAlumnoIndex}
+      />
+    )
   }
 
   return (
     <Dashboard 
       onLogout={handleLogout} 
-      userRole={userRole} 
+      userRole={userRole}
+      activeAlumnoIndex={activeAlumnoIndex}
       pagosPendientes={pagosPendientes}
       setPagosPendientes={setPagosPendientes}
       productos={productos}
