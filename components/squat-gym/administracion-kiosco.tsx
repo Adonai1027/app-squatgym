@@ -51,6 +51,13 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { Product } from "./types"
 
@@ -103,6 +110,22 @@ const sedeInfo = {
   telefono: "(011) 4567-8900",
   cuit: "30-12345678-9",
 }
+
+// Proveedores registrados
+const proveedoresOptions = [
+  { id: "P001", nombre: "FitSupply Corp", rubro: "Insumos y Equipamiento" },
+  { id: "P002", nombre: "Bebidas Premium SA", rubro: "Bebidas e Isotónicos" },
+  { id: "P003", nombre: "Equipos Deportivos XXL", rubro: "Equipamiento" },
+  { id: "P004", nombre: "Nutrición & Energía", rubro: "Proteínas y Suplementos" },
+]
+
+// Sedes del gimnasio
+const sedesOptions = [
+  { id: "S001", nombre: "Sede Central", direccion: "Av. Corrientes 1234, CABA" },
+  { id: "S002", nombre: "Sede Norte", direccion: "Av. Cabildo 2500, CABA" },
+  { id: "S003", nombre: "Sede Sur", direccion: "Av. Rivadavia 8900, CABA" },
+  { id: "S004", nombre: "Sede Oeste", direccion: "Av. San Martín 3400, CABA" },
+]
 
 // Mock clients database
 const clientes: Record<string, { nombre: string; apellido: string }> = {
@@ -1422,24 +1445,58 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
             {orderType === "externo" && (
               <div className="space-y-2">
                 <Label className="text-foreground">Proveedor</Label>
-                <Input
-                  placeholder="Nombre del proveedor"
+                <Select
                   value={orderDetails.proveedor}
-                  onChange={(e) => setOrderDetails({ ...orderDetails, proveedor: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                />
+                  onValueChange={(value) => setOrderDetails({ ...orderDetails, proveedor: value })}
+                >
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue placeholder="Seleccionar proveedor..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {proveedoresOptions.map((prov) => (
+                      <SelectItem key={prov.id} value={prov.nombre}>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-foreground">{prov.nombre}</span>
+                          <span className="text-xs text-muted-foreground">{prov.rubro}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {orderDetails.proveedor && (
+                  <p className="text-xs text-muted-foreground">
+                    {proveedoresOptions.find(p => p.nombre === orderDetails.proveedor)?.rubro}
+                  </p>
+                )}
               </div>
             )}
 
             {orderType === "interno" && (
               <div className="space-y-2">
-                <Label className="text-foreground">Sede</Label>
-                <Input
-                  placeholder="Nombre de la sede"
+                <Label className="text-foreground">Sede Destino</Label>
+                <Select
                   value={orderDetails.sede}
-                  onChange={(e) => setOrderDetails({ ...orderDetails, sede: e.target.value })}
-                  className="bg-input border-border text-foreground"
-                />
+                  onValueChange={(value) => setOrderDetails({ ...orderDetails, sede: value })}
+                >
+                  <SelectTrigger className="bg-input border-border text-foreground">
+                    <SelectValue placeholder="Seleccionar sede..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {sedesOptions.map((sede) => (
+                      <SelectItem key={sede.id} value={sede.nombre}>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-foreground">{sede.nombre}</span>
+                          <span className="text-xs text-muted-foreground">{sede.direccion}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {orderDetails.sede && (
+                  <p className="text-xs text-muted-foreground">
+                    {sedesOptions.find(s => s.nombre === orderDetails.sede)?.direccion}
+                  </p>
+                )}
               </div>
             )}
 
