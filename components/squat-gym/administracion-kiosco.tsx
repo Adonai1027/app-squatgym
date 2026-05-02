@@ -375,7 +375,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     })
 
     globalLastOrder = {
-      usuario: userRole,
+      usuario: userRole ?? "desconocido",
       fecha: new Date().toLocaleDateString("es-AR"),
       hora: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
       resumen: selectedProds.map(p => `${p.nombre} (x${quantities[p.id]})`).join(", "),

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Dumbbell, Eye, EyeOff, AlertCircle, RefreshCw } from "lucide-react"
+import { Dumbbell, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -63,11 +63,6 @@ export function LoginScreen({ onLogin, alumnoCount, nextAlumnoIndex }: LoginScre
     }
   }
 
-  const handleRetry = () => {
-    setError(null)
-    setUsername("")
-    setPassword("")
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -83,75 +78,62 @@ export function LoginScreen({ onLogin, alumnoCount, nextAlumnoIndex }: LoginScre
         </CardHeader>
 
         <CardContent>
-          {error ? (
-            <div className="space-y-4">
-              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-destructive">Acceso denegado</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {error}
-                  </p>
-                </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error banner — aparece sobre el formulario sin ocultarlo */}
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-destructive">{error}</p>
               </div>
-              <Button
-                onClick={handleRetry}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Reintentar
-              </Button>
+            )}
+
+            <div className="space-y-2">
+              <label htmlFor="username" className="text-sm font-medium text-foreground">
+                Usuario
+              </label>
+              <Input
+                id="username"
+                type="text"
+                placeholder="Ingresa tu usuario"
+                value={username}
+                onChange={(e) => { setUsername(e.target.value); setError(null) }}
+                className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                required
+              />
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium text-foreground">
-                  Usuario
-                </label>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Contraseña
+              </label>
+              <div className="relative">
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="Ingresa tu usuario"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Ingresa tu contraseña"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setError(null) }}
+                  className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">
-                  Contraseña
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Ingresa tu contraseña"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="bg-input border-border text-foreground placeholder:text-muted-foreground pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-6"
-              >
-                {isLoading ? "Ingresando..." : "Ingresar"}
-              </Button>
-            </form>
-          )}
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-6"
+            >
+              {isLoading ? "Ingresando..." : "Ingresar"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>

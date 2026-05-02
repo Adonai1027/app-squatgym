@@ -154,6 +154,26 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
               <p className="text-sm text-muted-foreground">Valor mensual</p>
               <p className="font-semibold text-foreground">${plan.precio.toLocaleString()}</p>
             </div>
+            {/* Vencimiento con alerta visual */}
+            {diasParaVencer < 0 ? (
+              <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center justify-between">
+                <p className="text-sm font-medium text-destructive">
+                  ⚠ Membresía vencida hace {Math.abs(diasParaVencer)} días
+                </p>
+              </div>
+            ) : diasParaVencer <= 5 ? (
+              <div className="px-3 py-2 bg-[#f59e0b]/10 border border-[#f59e0b]/20 rounded-lg">
+                <p className="text-sm font-medium text-[#f59e0b]">
+                  ⏳ Vence en {diasParaVencer} día{diasParaVencer !== 1 ? "s" : ""}
+                </p>
+              </div>
+            ) : (
+              <div className="px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
+                <p className="text-sm font-medium text-success">
+                  Vigente hasta {new Date(alumno.fechaVencimiento).toLocaleDateString()} ({diasParaVencer} días)
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

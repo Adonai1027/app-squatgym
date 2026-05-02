@@ -9,16 +9,23 @@ import { PagoPendiente, Product, Alumno, Plan, Promocion, Recibo } from "@/compo
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [userRole, setUserRole] = useState<UserRole>("secretaria")
+  const [activeAlumnoIndex, setActiveAlumnoIndex] = useState(0)
+  const [nextAlumnoIndex, setNextAlumnoIndex] = useState(0)
   const [pagosPendientes, setPagosPendientes] = useState<PagoPendiente[]>(pagosPendientesIniciales)
   const [productos, setProductos] = useState<Product[]>(productosIniciales)
-  
+
   const [alumnos, setAlumnos] = useState<Alumno[]>(alumnosIniciales)
   const [planes, setPlanes] = useState<Plan[]>(planesIniciales)
   const [promociones, setPromociones] = useState<Promocion[]>(promocionesIniciales)
   const [recibos, setRecibos] = useState<Recibo[]>(recibosIniciales)
 
-  const handleLogin = (role: UserRole) => {
+  const handleLogin = (role: UserRole, alumnoIndex?: number) => {
     setUserRole(role)
+    if (role === "alumno" && alumnoIndex !== undefined) {
+      setActiveAlumnoIndex(alumnoIndex)
+      // Advance round-robin counter for the next alumno login
+      setNextAlumnoIndex((alumnoIndex + 1) % alumnosIniciales.length)
+    }
     setIsAuthenticated(true)
   }
 
@@ -27,13 +34,20 @@ export default function Home() {
   }
 
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={handleLogin} />
+    return (
+      <LoginScreen
+        onLogin={handleLogin}
+        alumnoCount={alumnosIniciales.length}
+        nextAlumnoIndex={nextAlumnoIndex}
+      />
+    )
   }
 
   return (
-    <Dashboard 
-      onLogout={handleLogout} 
-      userRole={userRole} 
+    <Dashboard
+      onLogout={handleLogout}
+      userRole={userRole}
+      activeAlumnoIndex={activeAlumnoIndex}
       pagosPendientes={pagosPendientes}
       setPagosPendientes={setPagosPendientes}
       productos={productos}

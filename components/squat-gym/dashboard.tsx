@@ -57,9 +57,11 @@ type View =
   | "kiosco-pos"
   | "kiosco-stock"
   | "kiosco-reposicion"
+  | "kiosco-ventas"
   | "portal-socio"
   | "consola-configuracion"
   | "registro-pagos"
+  | "secretaria-dashboard"
 
 function getAlertCount(pagos: PagoPendiente[], productos: Product[], role: UserRole) {
   const criticos = role === "secretaria" ? [] : pagos.filter((p) => p.diasAtraso >= 14)
@@ -68,7 +70,7 @@ function getAlertCount(pagos: PagoPendiente[], productos: Product[], role: UserR
 }
 
 function getInitialView(role: UserRole): View {
-  if (role === "secretaria") return "kiosco-pos"
+  if (role === "secretaria") return "secretaria-dashboard"
   if (role === "alumno") return "portal-socio"
   return "dashboard"
 }
@@ -133,9 +135,11 @@ export function Dashboard({
     })
     setAlumnos(newAlumnos)
 
-    // Add receipt
+    // Add receipt with correlative number
+    const nextNum = recibos.length + 1
+    const recNum = `REC-${String(nextNum).padStart(4, "0")}`
     const newRecibo: Recibo = {
-      id: `REC-${Date.now()}`,
+      id: recNum,
       alumnoId,
       fecha: new Date().toISOString(),
       monto,
@@ -226,6 +230,22 @@ export function Dashboard({
             showToast={showToast}
           />
         )
+      case "kiosco-ventas":
+        return (
+          <AdministracionKiosco
+            key={currentView}
+            onBack={() => setCurrentView(backTarget)}
+            showToast={showToast}
+            initialView="ventas-diarias"
+            productos={productos}
+            setProductos={setProductos}
+            userRole={userRole}
+          />
+        )
+      case "secretaria-dashboard":
+        return (
+          <SecretariaDashboard setCurrentView={setCurrentView} />
+        )
       default:
         return (
           <AdminDashboard
@@ -260,9 +280,7 @@ export function Dashboard({
             </div>
             <div>
               <h1 className="font-bold text-sidebar-foreground">SquatGym</h1>
-              <p className="text-xs text-muted-foreground capitalize">
-                {userRole}
-              </p>
+              <p className="text-xs text-muted-foreground">Sistema de Gestión</p>
             </div>
           </button>
         </div>
@@ -445,6 +463,13 @@ function SecretariaNav({
 }) {
   return (
     <>
+      <NavButton
+        active={currentView === "secretaria-dashboard"}
+        icon={<LayoutDashboard className="w-4 h-4" />}
+        label="Inicio"
+        onClick={() => setCurrentView("secretaria-dashboard")}
+      />
+
       <div className="pt-3 pb-1 px-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
           Pagos
@@ -481,6 +506,12 @@ function SecretariaNav({
         icon={<ClipboardList className="w-4 h-4" />}
         label="Generar Pedido"
         onClick={() => setCurrentView("kiosco-reposicion")}
+      />
+      <NavButton
+        active={currentView === "kiosco-ventas"}
+        icon={<History className="w-4 h-4" />}
+        label="Ventas del Día"
+        onClick={() => setCurrentView("kiosco-ventas")}
       />
 
 
@@ -549,6 +580,12 @@ function EncargadoNav({
         icon={<ClipboardList className="w-4 h-4" />}
         label="Generar Pedido"
         onClick={() => setCurrentView("kiosco-reposicion")}
+      />
+      <NavButton
+        active={currentView === "kiosco-ventas"}
+        icon={<History className="w-4 h-4" />}
+        label="Ventas del Día"
+        onClick={() => setCurrentView("kiosco-ventas")}
       />
     </>
   )
@@ -875,5 +912,63 @@ function QuickCard({
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+// ─── Secretaria Dashboard ─────────────────────────────────────────────────────
+function SecretariaDashboard({ setCurrentView }: { setCurrentView: (v: View) => void }) {
+  const now = new Date()
+  const hora = now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+  const fecha = now.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+
+  return (
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Greeting */}
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Panel de Secretaría</h2>
+        <p className="text-muted-foreground mt-1 capitalize">
+          {fecha} · {hora}
+        </p>
+      </div>
+
+      {/* Quick access */}
+      <div>
+        <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
+          Accesos Rápidos
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <QuickCard
+            icon={<CreditCard className="w-7 h-7 text-[#C2D8C4]" />}
+            title="Cobro de Cuotas"
+            sub="Buscar alumno y registrar pago"
+            onClick={() => setCurrentView("registro-pagos")}
+          />
+          <QuickCard
+            icon={<ShoppingCart className="w-7 h-7 text-[#C2D8C4]" />}
+            title="Punto de Venta"
+            sub="Iniciar venta en kiosco"
+            onClick={() => setCurrentView("kiosco-pos")}
+          />
+          <QuickCard
+            icon={<Package className="w-7 h-7 text-[#C2D8C4]" />}
+            title="Ver Stock"
+            sub="Control de inventario del kiosco"
+            onClick={() => setCurrentView("kiosco-stock")}
+          />
+          <QuickCard
+            icon={<ClipboardList className="w-7 h-7 text-[#C2D8C4]" />}
+            title="Generar Pedido"
+            sub="Solicitar reposición de productos"
+            onClick={() => setCurrentView("kiosco-reposicion")}
+          />
+          <QuickCard
+            icon={<History className="w-7 h-7 text-[#C2D8C4]" />}
+            title="Ventas del Día"
+            sub="Ver historial de ventas del turno"
+            onClick={() => setCurrentView("kiosco-ventas")}
+          />
+        </div>
+      </div>
+    </div>
   )
 }
