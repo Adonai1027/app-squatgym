@@ -587,22 +587,24 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               </CardContent>
             </Card>
 
-            <Card
-              className="cursor-pointer hover:border-primary/50 transition-colors border-border bg-card group"
-              onClick={() => setView("ventas-diarias")}
-            >
-              <CardContent className="p-8 text-center">
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <BarChart3 className="w-10 h-10 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">Ventas Diarias</h3>
-                <p className="text-muted-foreground">Ver historial de ventas del día</p>
-                <div className="mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm inline-flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  ${ventasStats.totalVentas.toLocaleString()} hoy
-                </div>
-              </CardContent>
-            </Card>
+            {userRole !== "secretaria" && (
+              <Card
+                className="cursor-pointer hover:border-primary/50 transition-colors border-border bg-card group"
+                onClick={() => setView("ventas-diarias")}
+              >
+                <CardContent className="p-8 text-center">
+                  <div className="w-20 h-20 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                    <BarChart3 className="w-10 h-10 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Ventas Diarias</h3>
+                  <p className="text-muted-foreground">Ver historial de ventas del día</p>
+                  <div className="mt-3 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm inline-flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    ${ventasStats.totalVentas.toLocaleString()} hoy
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       )}
