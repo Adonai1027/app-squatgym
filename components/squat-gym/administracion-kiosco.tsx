@@ -170,6 +170,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const [isPreventiveOrder, setIsPreventiveOrder] = useState(false)
   const [orderType, setOrderType] = useState<"externo" | "interno">("externo")
   const [selectedProducts, setSelectedProducts] = useState<number[]>([])
+  const [preventiveQuantities, setPreventiveQuantities] = useState<Record<number, number>>({})
   const [orderDetails, setOrderDetails] = useState({ proveedor: "", sede: "", notas: "" })
   const [ventas, setVentas] = useState<Venta[]>(ventasHoy)
 
@@ -355,7 +356,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       usuario: userRole,
       fecha: new Date().toLocaleDateString("es-AR"),
       hora: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
-      resumen: selectedProds.map(p => `${p.nombre} (x${p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20})`).join(", ")
+      resumen: selectedProds.map(p => `${p.nombre} (x${preventiveQuantities[p.id] || (p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20)})`).join(", ")
     }
 
     setConfirmedOrder({
@@ -812,7 +813,6 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               <Button 
                 onClick={() => {
                   setIsPreventiveOrder(true)
-                  setShowOrderDialog(true)
                 }}
                 className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 min-w-[200px]"
               >
@@ -894,11 +894,20 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               {userRole !== "secretaria" && (
                 <Button
                   onClick={() => {
-                    if (!hasShortage) {
-                      setAttemptingOrder(true)
-                    } else {
-                      setShowOrderDialog(true)
+                    if (selectedProducts.length === 0 && hasShortage) {
+                      const shortageIds = [...outOfStockProducts, ...lowStockProducts].map(p => p.id)
+                      setSelectedProducts(shortageIds)
+                      const initialQuantities: Record<number, number> = {}
+                      shortageIds.forEach(id => {
+                        const p = productos.find(x => x.id === id)
+                        if (p) initialQuantities[id] = p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20
+                      })
+                      setPreventiveQuantities(initialQuantities)
+                    } else if (selectedProducts.length === 0 && !hasShortage) {
+                      showToast("Seleccioná al menos un producto de la tabla.", "info")
+                      return
                     }
+                    setShowOrderDialog(true)
                   }}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
@@ -935,11 +944,13 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
+                      {userRole !== "secretaria" && <TableHead className="w-12"></TableHead>}
                       <TableHead className="text-muted-foreground">Producto</TableHead>
                       <TableHead className="text-muted-foreground text-center">Precio</TableHead>
                       <TableHead className="text-muted-foreground text-center">Stock Actual</TableHead>
                       <TableHead className="text-muted-foreground text-center">Mínimo</TableHead>
                       <TableHead className="text-muted-foreground text-center">Estado</TableHead>
+                      {userRole !== "secretaria" && <TableHead className="text-muted-foreground text-center w-32">Reponer (Cant.)</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -952,6 +963,23 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                           className={`border-border ${isOutOfStock ? "bg-destructive/5" : isLowStock ? "bg-warning/5" : ""
                             }`}
                         >
+                          {userRole !== "secretaria" && (
+                            <TableCell>
+                              <input 
+                                type="checkbox"
+                                checked={selectedProducts.includes(producto.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedProducts([...selectedProducts, producto.id])
+                                    setPreventiveQuantities({...preventiveQuantities, [producto.id]: 20})
+                                  } else {
+                                    setSelectedProducts(selectedProducts.filter(id => id !== producto.id))
+                                  }
+                                }}
+                                className="w-4 h-4 rounded border-border accent-primary"
+                              />
+                            </TableCell>
+                          )}
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">{producto.imagen}</span>
@@ -990,6 +1018,21 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                               </span>
                             )}
                           </TableCell>
+                          {userRole !== "secretaria" && (
+                            <TableCell className="text-center">
+                              {selectedProducts.includes(producto.id) ? (
+                                <Input 
+                                  type="number"
+                                  min="1"
+                                  className="w-16 mx-auto h-8 text-center bg-input border-border"
+                                  value={preventiveQuantities[producto.id] || ""}
+                                  onChange={(e) => setPreventiveQuantities({...preventiveQuantities, [producto.id]: parseInt(e.target.value) || 0})}
+                                />
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       )
                     })}
@@ -1275,35 +1318,25 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
             <div className="space-y-3">
               <Label className="text-foreground">Productos a reponer</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {[...outOfStockProducts, ...lowStockProducts].map((producto) => (
-                  <label
-                    key={producto.id}
-                    className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30 cursor-pointer hover:bg-secondary/50"
-                  >
+                {productos.filter(p => selectedProducts.includes(p.id)).map((producto) => (
+                  <div key={producto.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30">
                     <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedProducts.includes(producto.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedProducts([...selectedProducts, producto.id])
-                          } else {
-                            setSelectedProducts(selectedProducts.filter((id) => id !== producto.id))
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-border accent-primary"
-                      />
                       <span className="text-xl">{producto.imagen}</span>
                       <span className="text-foreground">{producto.nombre}</span>
                     </div>
-                    <span className={`text-sm font-medium ${producto.stock === 0 ? "text-destructive" : "text-[#f59e0b]"}`}>
-                      {producto.stock === 0 ? "Agotado" : `Stock: ${producto.stock}`}
-                    </span>
-                  </label>
+                    <div className="flex items-center gap-4">
+                      <span className={`text-sm font-medium ${producto.stock === 0 ? "text-destructive" : "text-[#f59e0b]"}`}>
+                        Stock actual: {producto.stock}
+                      </span>
+                      <span className="text-sm font-bold text-primary">
+                        + {preventiveQuantities[producto.id] || 0} uds
+                      </span>
+                    </div>
+                  </div>
                 ))}
-                {[...outOfStockProducts, ...lowStockProducts].length === 0 && (
+                {selectedProducts.length === 0 && (
                   <p className="text-muted-foreground text-center py-4">
-                    No hay productos con stock bajo
+                    No has seleccionado ningún producto.
                   </p>
                 )}
               </div>
