@@ -965,12 +965,6 @@ function SecretariaDashboard({ setCurrentView }: { setCurrentView: (v: View) => 
             sub="Solicitar reposición de productos"
             onClick={() => setCurrentView("kiosco-reposicion")}
           />
-          <QuickCard
-            icon={<History className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Ventas del Día"
-            sub="Ver historial de ventas del turno"
-            onClick={() => setCurrentView("kiosco-ventas")}
-          />
         </div>
       </div>
     </div>
