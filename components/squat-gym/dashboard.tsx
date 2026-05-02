@@ -19,6 +19,8 @@ import {
   Zap,
   Settings,
   Menu,
+  CheckCircle2,
+  History,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -654,6 +656,8 @@ function AdminDashboard({
   const criticos = pagosPendientes.filter((p) => p.diasAtraso >= 14)
   const totalPendiente = pagosPendientes.reduce((s, p) => s + p.monto, 0)
 
+  const todoAlDia = totalPendiente === 0 && stockBajo.length === 0 && criticos.length === 0
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -666,120 +670,155 @@ function AdminDashboard({
         </div>
       </div>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <TrendingDown className="w-5 h-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total Pendiente</p>
-              <p className="text-xl font-bold text-destructive">
-                ${totalPendiente.toLocaleString()}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {todoAlDia ? (
+        /* ── PANEL DE ÉXITO (todo en orden) ── */
+        <div
+          className="w-full rounded-2xl border border-[#C2D8C4] p-6 sm:p-10 flex flex-col items-center justify-center gap-4 text-center"
+          style={{ backgroundColor: "rgba(194, 216, 196, 0.12)" }}
+        >
+          <div className="w-16 h-16 rounded-full bg-[#C2D8C4]/20 flex items-center justify-center">
+            <CheckCircle2 className="w-9 h-9" style={{ color: "#C2D8C4" }} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-xl font-bold text-foreground">¡Todo al día!</h3>
+            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+              No tenés tareas administrativas pendientes. Todos los pagos están saldados y el stock está completo.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2 border-[#C2D8C4]/50 text-[#C2D8C4] hover:bg-[#C2D8C4]/10 gap-2"
+            onClick={() => setCurrentView("pagos-proveedores")}
+          >
+            <History className="w-4 h-4" />
+            Ver historial completo
+          </Button>
+        </div>
+      ) : (
+        /* ── KPIs + ALERTAS (hay cosas pendientes) ── */
+        <>
+          {/* KPI strip — solo muestra tarjetas con valor > 0 en rojo/amarillo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {totalPendiente > 0 && (
+              <Card className="border-destructive/40 bg-destructive/5">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                    <TrendingDown className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Pendiente</p>
+                    <p className="text-xl font-bold text-destructive">${totalPendiente.toLocaleString()}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-        <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center flex-shrink-0">
-              <Package className="w-5 h-5 text-[#f59e0b]" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Bajo Mínimo</p>
-              <p className="text-xl font-bold text-[#f59e0b]">{stockBajo.length} productos</p>
-            </div>
-          </CardContent>
-        </Card>
+            {stockBajo.length > 0 && (
+              <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center flex-shrink-0">
+                    <Package className="w-5 h-5 text-[#f59e0b]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Bajo Mínimo</p>
+                    <p className="text-xl font-bold text-[#f59e0b]">{stockBajo.length} productos</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-        <Card className="border-border bg-card">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-lg bg-[#C2D8C4]/20 flex items-center justify-center flex-shrink-0">
-              <Zap className="w-5 h-5 text-[#C2D8C4]" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Pagos Críticos</p>
-              <p className="text-xl font-bold text-foreground">{criticos.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {criticos.length > 0 && (
+              <Card className="border-destructive/40 bg-destructive/5">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                    <Zap className="w-5 h-5 text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pagos Críticos</p>
+                    <p className="text-xl font-bold text-destructive">{criticos.length}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-      {/* Alerts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Pending payments */}
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-destructive text-base">
-              <AlertOctagon className="w-4 h-4" />
-              Pagos Pendientes a Proveedores
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {pagosPendientes.map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
-              >
-                <div>
-                  <p className="font-medium text-foreground text-sm">{p.proveedor.nombre}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}
-                  </p>
-                </div>
-                <p
-                  className={`font-bold text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"
-                    }`}
-                >
-                  ${p.monto.toLocaleString()}
-                </p>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              className="w-full mt-1 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm"
-              onClick={() => setCurrentView("pagos-proveedores")}
-            >
-              Ver y gestionar pagos →
-            </Button>
-          </CardContent>
-        </Card>
+          {/* Alert detail cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Pending payments — solo si hay */}
+            {pagosPendientes.length > 0 && (
+              <Card className="border-destructive/40 bg-destructive/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-destructive text-base">
+                    <AlertOctagon className="w-4 h-4" />
+                    Pagos Pendientes a Proveedores
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {pagosPendientes.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground text-sm">{p.proveedor.nombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}
+                        </p>
+                      </div>
+                      <p className={`font-bold text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"}`}>
+                        ${p.monto.toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-1 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm"
+                    onClick={() => setCurrentView("pagos-proveedores")}
+                  >
+                    Ver y gestionar pagos →
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
-        {/* Low stock */}
-        <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-[#f59e0b] text-base">
-              <AlertTriangle className="w-4 h-4" />
-              Stock Bajo en Kiosco
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {stockBajo.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
-              >
-                <div>
-                  <p className="font-medium text-foreground text-sm">{s.nombre}</p>
-                  <p className="text-xs text-muted-foreground">Mín: {s.minimo} unidades</p>
-                </div>
-                <p className="font-bold text-[#f59e0b] text-sm">{s.stock} uds</p>
-              </div>
-            ))}
-            <Button
-              variant="outline"
-              className="w-full mt-1 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm"
-              onClick={() => setCurrentView("kiosco-reposicion")}
-            >
-              Generar pedido de reposición →
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Low stock — solo si hay */}
+            {stockBajo.length > 0 && (
+              <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-[#f59e0b] text-base">
+                    <AlertTriangle className="w-4 h-4" />
+                    Stock Bajo en Kiosco
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {stockBajo.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground text-sm">{s.nombre}</p>
+                        <p className="text-xs text-muted-foreground">Mín: {s.minimo} unidades</p>
+                      </div>
+                      <p className="font-bold text-[#f59e0b] text-sm">{s.stock} uds</p>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-1 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm"
+                    onClick={() => setCurrentView("kiosco-reposicion")}
+                  >
+                    Generar pedido de reposición →
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </>
+      )}
 
-      {/* Quick access */}
+      {/* Quick access — siempre visible */}
       <div>
         <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
           Accesos Rápidos
