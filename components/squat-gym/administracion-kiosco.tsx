@@ -157,10 +157,14 @@ const ventasHoy: Venta[] = [
 
 type StockSortKey = "nombre" | "precio" | "stock" | "minimo"
 
+let globalLastOrder: { usuario: string, fecha: string, hora: string, resumen: string } | null = null;
+
 export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, userRole }: AdministracionKioscoProps) {
+  const hasShortage = productos.some(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
+  
   const [view, setView] = useState<KioscoView>(initialView || "hub")
   const [carrito, setCarrito] = useState<CartItem[]>([])
-  const [showOrderDialog, setShowOrderDialog] = useState(openOrderDialogOnMount || false)
+  const [showOrderDialog, setShowOrderDialog] = useState((openOrderDialogOnMount && hasShortage) || false)
   const [showOrderConfirmation, setShowOrderConfirmation] = useState(false)
   const [isPreventiveOrder, setIsPreventiveOrder] = useState(false)
   const [orderType, setOrderType] = useState<"externo" | "interno">("externo")
@@ -345,6 +349,13 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const handleOrderSubmit = () => {
     const orderNumber = `PED-${Date.now().toString().slice(-6)}`
     const selectedProds = productos.filter(p => selectedProducts.includes(p.id))
+
+    globalLastOrder = {
+      usuario: userRole,
+      fecha: new Date().toLocaleDateString("es-AR"),
+      hora: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+      resumen: selectedProds.map(p => `${p.nombre} (x${p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20})`).join(", ")
+    }
 
     setConfirmedOrder({
       tipo: orderType,
@@ -807,9 +818,9 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               <h4 className="font-medium text-sm">Última reposición confirmada</h4>
             </div>
             <div className="space-y-1">
-               <p className="text-sm font-semibold text-foreground">Encargado General (Admin)</p>
-               <p className="text-xs text-muted-foreground">2026-05-01 · 09:30 AM</p>
-               <p className="text-xs text-muted-foreground mt-2">Batido Proteico (x10), Agua Mineral (x20)</p>
+               <p className="text-sm font-semibold text-foreground capitalize">{globalLastOrder ? globalLastOrder.usuario : userRole}</p>
+               <p className="text-xs text-muted-foreground">{globalLastOrder ? `${globalLastOrder.fecha} · ${globalLastOrder.hora}` : "Hoy · Hace un momento"}</p>
+               <p className="text-xs text-muted-foreground mt-2">{globalLastOrder ? globalLastOrder.resumen : "Batido Proteico (x10), Agua Mineral (x20)"}</p>
                <Button variant="link" className="px-0 h-auto text-xs text-[#C2D8C4] mt-2 font-medium">
                  Ver comprobante →
                </Button>
