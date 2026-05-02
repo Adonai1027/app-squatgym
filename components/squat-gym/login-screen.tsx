@@ -73,7 +73,7 @@ export function LoginScreen({ onLogin, alumnoCount, nextAlumnoIndex }: LoginScre
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground tracking-tight">SquatGym</h1>
-            <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión V3</p>
+            <p className="text-muted-foreground text-sm mt-1">Sistema de Gestión</p>
           </div>
         </CardHeader>
 

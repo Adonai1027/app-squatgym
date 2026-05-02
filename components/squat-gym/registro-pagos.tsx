@@ -47,7 +47,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
     }
 
     onPagar(selectedAlumno.id, total, selectedMethod, selectedPromo?.id)
-    
+
     // Generar recibo
     setReceiptData({
       fecha: new Date().toLocaleString(),
@@ -57,7 +57,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
       metodo: selectedMethod,
       promo: selectedPromo?.codigo
     })
-    
+
     setShowReceipt(true)
     showToast("Pago registrado exitosamente", "success")
   }
@@ -131,8 +131,8 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
-          <Input 
-            placeholder="Buscar por DNI o Nombre..." 
+          <Input
+            placeholder="Buscar por DNI o Nombre..."
             className="pl-10 h-12 text-lg bg-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -204,9 +204,8 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                       <button
                         key={promo.id}
                         onClick={() => setSelectedPromo(selectedPromo?.id === promo.id ? null : promo)}
-                        className={`p-2 rounded-lg border text-sm text-left transition-colors flex justify-between items-center ${
-                          selectedPromo?.id === promo.id ? "border-[#C2D8C4] bg-[#C2D8C4]/10 text-[#C2D8C4]" : "border-border hover:border-[#C2D8C4]/50"
-                        }`}
+                        className={`p-2 rounded-lg border text-sm text-left transition-colors flex justify-between items-center ${selectedPromo?.id === promo.id ? "border-[#C2D8C4] bg-[#C2D8C4]/10 text-[#C2D8C4]" : "border-border hover:border-[#C2D8C4]/50"
+                          }`}
                       >
                         <span className="font-medium">{promo.codigo}</span>
                         <span className="text-xs bg-background px-1.5 py-0.5 rounded">-{promo.descuentoPorcentaje}%</span>
@@ -222,9 +221,8 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                       <button
                         key={method}
                         onClick={() => setSelectedMethod(method)}
-                        className={`flex-1 py-2 rounded-lg border text-sm text-center transition-colors ${
-                          selectedMethod === method ? "border-foreground bg-secondary text-foreground font-semibold" : "border-border text-muted-foreground hover:bg-secondary/50"
-                        }`}
+                        className={`flex-1 py-2 rounded-lg border text-sm text-center transition-colors ${selectedMethod === method ? "border-foreground bg-secondary text-foreground font-semibold" : "border-border text-muted-foreground hover:bg-secondary/50"
+                          }`}
                       >
                         {method}
                       </button>
@@ -235,11 +233,11 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                 <div className="flex items-center justify-between pt-2">
                   <div>
                     <p className="text-sm font-medium">Inscripción fuera de término</p>
-                    <p className="text-xs text-muted-foreground">Calcular cobro prorrateado (CU 8)</p>
+                    <p className="text-xs text-muted-foreground">Calcular cobro prorrateado</p>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       const dayOfMonth = new Date().getDate();
                       const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
@@ -249,7 +247,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                       setSelectedPromo({ id: "PRORRATEO", codigo: "Prorrateo Inscripción", descuentoPorcentaje: (1 - prop) * 100, activa: true });
                     }}
                   >
-                    Simular Prorrateo
+                    Calcular Prorrateo
                   </Button>
                 </div>
 
@@ -270,7 +268,7 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   onClick={handlePagar}
                   className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 text-lg py-6"
                 >

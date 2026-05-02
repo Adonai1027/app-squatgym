@@ -507,14 +507,6 @@ function SecretariaNav({
         label="Generar Pedido"
         onClick={() => setCurrentView("kiosco-reposicion")}
       />
-      <NavButton
-        active={currentView === "kiosco-ventas"}
-        icon={<History className="w-4 h-4" />}
-        label="Ventas del Día"
-        onClick={() => setCurrentView("kiosco-ventas")}
-      />
-
-
     </>
   )
 }
@@ -638,6 +630,18 @@ function AdministradorNav({
         icon={<Settings className="w-4 h-4" />}
         label="Consola Central"
         onClick={() => setCurrentView("consola-configuracion")}
+      />
+
+      <div className="pt-3 pb-1 px-2 mt-4">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Reportes y Operaciones
+        </p>
+      </div>
+      <NavButton
+        active={currentView === "kiosco-ventas"}
+        icon={<History className="w-4 h-4" />}
+        label="Ventas del Kiosco"
+        onClick={() => setCurrentView("kiosco-ventas")}
       />
     </>
   )

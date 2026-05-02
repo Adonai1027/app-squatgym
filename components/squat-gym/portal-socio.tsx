@@ -16,7 +16,7 @@ interface PortalSocioProps {
 export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps) {
   const [showPayment, setShowPayment] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<"QR" | "Transferencia" | "Tarjeta" | null>(null)
-  
+
   const diasParaVencer = Math.floor((new Date(alumno.fechaVencimiento).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
 
   if (showPayment) {
@@ -58,7 +58,7 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
             {selectedMethod && (
               <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
                 <div className="p-4 rounded-xl bg-secondary/50 border border-border flex items-center justify-center min-h-[150px]">
-                  {selectedMethod === "QR" && <p className="text-muted-foreground flex flex-col items-center gap-2"><QrCode className="w-16 h-16 opacity-50"/> Escanea con tu app de pagos</p>}
+                  {selectedMethod === "QR" && <p className="text-muted-foreground flex flex-col items-center gap-2"><QrCode className="w-16 h-16 opacity-50" /> Escanea con tu app de pagos</p>}
                   {selectedMethod === "Transferencia" && (
                     <div className="text-center">
                       <p className="font-semibold mb-1">CBU: 0000003100000000000000</p>
@@ -67,15 +67,15 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
                   )}
                   {selectedMethod === "Tarjeta" && <p className="text-muted-foreground text-center">Serás redirigido al portal de MercadoPago</p>}
                 </div>
-                
-                <Button 
+
+                <Button
                   className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 text-lg py-6"
                   onClick={() => {
                     onPagar(selectedMethod, alumno.deuda)
                     setShowPayment(false)
                   }}
                 >
-                  Simular Pago Exitoso
+                  Pagar
                 </Button>
               </div>
             )}
@@ -112,7 +112,7 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
                 <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
                   <p className="text-sm font-medium text-destructive">Vencimiento: {new Date(alumno.fechaVencimiento).toLocaleDateString()}</p>
                 </div>
-                <Button 
+                <Button
                   className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90"
                   onClick={() => setShowPayment(true)}
                 >
@@ -221,11 +221,10 @@ function PaymentMethodCard({ icon, title, active, onClick }: { icon: React.React
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all ${
-        active 
-          ? "border-[#C2D8C4] bg-[#C2D8C4]/10 text-[#C2D8C4]" 
+      className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border transition-all ${active
+          ? "border-[#C2D8C4] bg-[#C2D8C4]/10 text-[#C2D8C4]"
           : "border-border bg-card text-muted-foreground hover:border-[#C2D8C4]/50"
-      }`}
+        }`}
     >
       {icon}
       <span className="text-xs font-semibold">{title}</span>

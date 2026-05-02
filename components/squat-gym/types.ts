@@ -58,3 +58,19 @@ export interface Recibo {
   metodo: "Efectivo" | "Tarjeta" | "Transferencia" | "QR"
   concepto: string
 }
+
+export type Turno = "mañana" | "tarde" | "noche"
+
+export interface VentaKiosco {
+  id: string
+  fecha: string       // "DD/MM/AAAA"
+  hora: string        // "HH:MM"
+  items: { nombre: string; cantidad: number; precio: number }[]
+  total: number
+  medio: string
+  cliente?: string
+  dniCliente?: string
+  sedeId: string
+  sede: string
+  turno: Turno
+}

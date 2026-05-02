@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   ArrowLeft,
   ShoppingCart,
@@ -59,7 +59,41 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { Product } from "./types"
+import { Product, VentaKiosco, Turno } from "./types"
+import { ventasKioscoIniciales, sedesOptions as sedesData } from "./data"
+
+const VENTAS_STORAGE_KEY = "squatgym_ventas_kiosco"
+
+function loadVentas(): VentaKiosco[] {
+  if (typeof window === "undefined") return ventasKioscoIniciales
+  try {
+    const raw = localStorage.getItem(VENTAS_STORAGE_KEY)
+    if (!raw) return ventasKioscoIniciales
+    const parsed: VentaKiosco[] = JSON.parse(raw)
+    // Merge stored with initial seeds (avoid duplicates by id)
+    const storedIds = new Set(parsed.map(v => v.id))
+    const merged = [
+      ...parsed,
+      ...ventasKioscoIniciales.filter(v => !storedIds.has(v.id)),
+    ]
+    return merged.sort((a, b) => b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora))
+  } catch {
+    return ventasKioscoIniciales
+  }
+}
+
+function saveVentas(ventas: VentaKiosco[]) {
+  try {
+    localStorage.setItem(VENTAS_STORAGE_KEY, JSON.stringify(ventas))
+  } catch { /* quota exceeded – ignore */ }
+}
+
+function turnoDesdeHora(hora: string): Turno {
+  const h = parseInt(hora.split(":")[0], 10)
+  if (h < 13) return "mañana"
+  if (h < 18) return "tarde"
+  return "noche"
+}
 
 interface AdministracionKioscoProps {
   onBack: () => void
@@ -69,26 +103,15 @@ interface AdministracionKioscoProps {
   productos: Product[]
   setProductos: (p: Product[]) => void
   userRole?: string
+  sedeId?: string
+  sede?: string
 }
 
 type KioscoView = "hub" | "pos" | "stock" | "ventas-diarias"
 
-
-
 interface CartItem {
   product: Product
   cantidad: number
-}
-
-interface Venta {
-  id: string
-  fecha: string
-  hora: string
-  items: { nombre: string; cantidad: number; precio: number }[]
-  total: number
-  medio: string
-  cliente?: string
-  dniCliente?: string
 }
 
 interface ReceiptData {
@@ -119,13 +142,8 @@ const proveedoresOptions = [
   { id: "P004", nombre: "Nutrición & Energía", rubro: "Proteínas y Suplementos" },
 ]
 
-// Sedes del gimnasio
-const sedesOptions = [
-  { id: "S001", nombre: "Sede Central", direccion: "Av. Corrientes 1234, CABA" },
-  { id: "S002", nombre: "Sede Norte", direccion: "Av. Cabildo 2500, CABA" },
-  { id: "S003", nombre: "Sede Sur", direccion: "Av. Rivadavia 8900, CABA" },
-  { id: "S004", nombre: "Sede Oeste", direccion: "Av. San Martín 3400, CABA" },
-]
+// Sedes del gimnasio — re-exported from data.ts; kept here as a fallback alias
+const sedesOptions = sedesData
 
 // Mock clients database
 const clientes: Record<string, { nombre: string; apellido: string }> = {
@@ -138,45 +156,6 @@ const clientes: Record<string, { nombre: string; apellido: string }> = {
 
 
 
-// Mock daily sales
-const ventasHoy: Venta[] = [
-  {
-    id: "V-001",
-    fecha: new Date().toLocaleDateString("es-AR"),
-    hora: "09:15",
-    items: [
-      { nombre: "Agua Mineral 500ml", cantidad: 2, precio: 500 },
-      { nombre: "Barra de Proteína", cantidad: 1, precio: 1200 },
-    ],
-    total: 2200,
-    medio: "Efectivo",
-    cliente: "Juan Pérez",
-    dniCliente: "12345678",
-  },
-  {
-    id: "V-002",
-    fecha: new Date().toLocaleDateString("es-AR"),
-    hora: "10:30",
-    items: [
-      { nombre: "Café Express", cantidad: 1, precio: 400 },
-    ],
-    total: 400,
-    medio: "QR",
-  },
-  {
-    id: "V-003",
-    fecha: new Date().toLocaleDateString("es-AR"),
-    hora: "11:45",
-    items: [
-      { nombre: "Batido Proteico", cantidad: 2, precio: 1500 },
-      { nombre: "Bebida Isotónica", cantidad: 1, precio: 800 },
-    ],
-    total: 3800,
-    medio: "Tarjeta",
-    cliente: "María García",
-    dniCliente: "23456789",
-  },
-]
 
 type StockSortKey = "nombre" | "precio" | "stock" | "minimo"
 
@@ -188,7 +167,7 @@ let globalLastOrder: {
   productQuantities: Record<number, number>
 } | null = null
 
-export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, userRole }: AdministracionKioscoProps) {
+export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, userRole, sedeId = "S001", sede = "Sede Central" }: AdministracionKioscoProps) {
   const hasShortage = productos.some(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
   
   const [view, setView] = useState<KioscoView>(initialView || "hub")
@@ -212,7 +191,25 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     openOrderDialogOnMount && hasShortage ? initialQuantities : {}
   )
   const [orderDetails, setOrderDetails] = useState({ proveedor: "", sede: "", notas: "" })
-  const [ventas, setVentas] = useState<Venta[]>(ventasHoy)
+  const [ventas, setVentasState] = useState<VentaKiosco[]>(() => loadVentas())
+
+  const setVentas = (updated: VentaKiosco[]) => {
+    setVentasState(updated)
+    saveVentas(updated)
+  }
+
+  // Sync seed data into localStorage on first mount (idempotent)
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem(VENTAS_STORAGE_KEY)) {
+      saveVentas(ventasKioscoIniciales)
+    }
+  }, [])
+
+  // ── Ventas-diarias filter state ──────────────────────────────────────────
+  const today = new Date().toLocaleDateString("es-AR")
+  const [filtroFecha, setFiltroFecha] = useState<string>(today)
+  const [filtroSede, setFiltroSede] = useState<string>(userRole === "encargado" ? (sedeId || "S001") : "todas")
+  const [filtroTurno, setFiltroTurno] = useState<string>("todos")
 
   // POS filter state
   const [posSearch, setPosSearch] = useState("")
@@ -358,8 +355,8 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       sede: sedeInfo,
     }
 
-    // Add to daily sales
-    const nuevaVenta: Venta = {
+    // Add to sales (persistent)
+    const nuevaVenta: VentaKiosco = {
       id: receiptData.numero,
       fecha: receiptData.fecha,
       hora: receiptData.hora,
@@ -368,8 +365,12 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       medio: receiptData.medio,
       cliente: receiptData.cliente,
       dniCliente: receiptData.dniCliente,
+      sedeId,
+      sede,
+      turno: turnoDesdeHora(receiptData.hora),
     }
     setVentas([nuevaVenta, ...ventas])
+
 
     // Update stock
     const updatedProductos = productos.map((p) => {
@@ -444,13 +445,44 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const lowStockProducts = productos.filter((p) => p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso)
   const outOfStockProducts = productos.filter((p) => p.stock === 0 && !p.pedidoEnCurso)
 
-  // Calculate daily sales stats
+  // ── Filtered ventas for the "ventas-diarias" view ────────────────────────
+  const ventasFiltradas = useMemo(() => {
+    return ventas.filter(v => {
+      if (filtroFecha && filtroFecha !== "todas" && v.fecha !== filtroFecha) return false
+      if (filtroSede !== "todas" && v.sedeId !== filtroSede) return false
+      if (filtroTurno !== "todos" && v.turno !== filtroTurno) return false
+      return true
+    })
+  }, [ventas, filtroFecha, filtroSede, filtroTurno])
+
+  // Unique sorted dates present in the full dataset (for the date picker)
+  const fechasDisponibles = useMemo(() => {
+    const set = new Set(ventas.map(v => v.fecha))
+    return Array.from(set).sort((a, b) => {
+      // Parse DD/MM/AAAA for comparison
+      const [da, ma, ya] = a.split("/").map(Number)
+      const [db, mb, yb] = b.split("/").map(Number)
+      return new Date(yb, mb - 1, db).getTime() - new Date(ya, ma - 1, da).getTime()
+    })
+  }, [ventas])
+
+  // KPIs for today across all branches (hub badge)
   const ventasStats = useMemo(() => {
-    const totalVentas = ventas.reduce((acc, v) => acc + v.total, 0)
-    const cantidadVentas = ventas.length
+    const todayVentas = ventas.filter(v => v.fecha === today)
+    const totalVentas = todayVentas.reduce((acc, v) => acc + v.total, 0)
+    const cantidadVentas = todayVentas.length
     const promedioVenta = cantidadVentas > 0 ? totalVentas / cantidadVentas : 0
     return { totalVentas, cantidadVentas, promedioVenta }
-  }, [ventas])
+  }, [ventas, today])
+
+  // KPIs for the active filter selection
+  const filteredStats = useMemo(() => {
+    const totalVentas = ventasFiltradas.reduce((acc, v) => acc + v.total, 0)
+    const cantidadVentas = ventasFiltradas.length
+    const promedioVenta = cantidadVentas > 0 ? totalVentas / cantidadVentas : 0
+    return { totalVentas, cantidadVentas, promedioVenta }
+  }, [ventasFiltradas])
+
 
   return (
     <div className="space-y-6">
@@ -738,7 +770,112 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       {/* Daily Sales View */}
       {view === "ventas-diarias" && (
         <div className="space-y-6">
-          {/* Stats Cards */}
+          {/* Filter Bar */}
+          <Card className="border-border bg-card">
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-3 items-end">
+                {/* Date filter */}
+                <div className="flex flex-col gap-1.5 min-w-[160px]">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" /> Fecha
+                  </label>
+                  <Select value={filtroFecha} onValueChange={setFiltroFecha}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Seleccionar fecha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas las fechas</SelectItem>
+                      {fechasDisponibles.map(f => (
+                        <SelectItem key={f} value={f}>
+                          {f === today ? `Hoy (${f})` : f}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Branch filter */}
+                <div className="flex flex-col gap-1.5 min-w-[160px]">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" /> Sede
+                  </label>
+                  <Select 
+                    value={filtroSede} 
+                    onValueChange={setFiltroSede}
+                    disabled={userRole === "encargado"}
+                  >
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Todas las sedes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas las sedes</SelectItem>
+                      {sedesOptions.map(s => (
+                        <SelectItem key={s.id} value={s.id}>{s.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Shift filter */}
+                <div className="flex flex-col gap-1.5 min-w-[140px]">
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" /> Turno
+                  </label>
+                  <Select value={filtroTurno} onValueChange={setFiltroTurno}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue placeholder="Todos los turnos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los turnos</SelectItem>
+                      <SelectItem value="mañana">☀️ Mañana (hasta 12:59)</SelectItem>
+                      <SelectItem value="tarde">🌤️ Tarde (13:00–17:59)</SelectItem>
+                      <SelectItem value="noche">🌙 Noche (18:00+)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Reset button */}
+                {(filtroFecha !== today || (userRole !== "encargado" && filtroSede !== "todas") || filtroTurno !== "todos") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="self-end text-muted-foreground hover:text-foreground text-xs gap-1"
+                    onClick={() => { 
+                      setFiltroFecha(today); 
+                      setFiltroSede(userRole === "encargado" ? (sedeId || "S001") : "todas"); 
+                      setFiltroTurno("todos");
+                    }}
+                  >
+                    <X className="w-3.5 h-3.5" /> Limpiar filtros
+                  </Button>
+                )}
+              </div>
+
+              {/* Active-filter summary pill */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {filtroFecha !== "todas" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                    <Calendar className="w-3 h-3" />
+                    {filtroFecha === today ? "Hoy" : filtroFecha}
+                  </span>
+                )}
+                {filtroSede !== "todas" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                    <MapPin className="w-3 h-3" />
+                    {sedesOptions.find(s => s.id === filtroSede)?.nombre}
+                  </span>
+                )}
+                {filtroTurno !== "todos" && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs bg-primary/10 text-primary border border-primary/20">
+                    <Clock className="w-3 h-3" />
+                    Turno {filtroTurno}
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* KPI Cards (filter-aware) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="border-border bg-card">
               <CardContent className="p-4">
@@ -748,7 +885,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Total Vendido</p>
-                    <p className="text-2xl font-bold text-primary">${ventasStats.totalVentas.toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-primary">${filteredStats.totalVentas.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -761,7 +898,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Cantidad de Ventas</p>
-                    <p className="text-2xl font-bold text-foreground">{ventasStats.cantidadVentas}</p>
+                    <p className="text-2xl font-bold text-foreground">{filteredStats.cantidadVentas}</p>
                   </div>
                 </div>
               </CardContent>
@@ -774,7 +911,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Promedio por Venta</p>
-                    <p className="text-2xl font-bold text-foreground">${Math.round(ventasStats.promedioVenta).toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-foreground">${Math.round(filteredStats.promedioVenta).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -785,53 +922,88 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
           <Card className="border-border bg-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-primary" />
-                Ventas de Hoy - {new Date().toLocaleDateString("es-AR")}
+                <BarChart3 className="w-5 h-5 text-primary" />
+                Historial de Ventas
+                <span className="ml-auto text-sm font-normal text-muted-foreground">
+                  {ventasFiltradas.length} resultado{ventasFiltradas.length !== 1 ? "s" : ""}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {ventas.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No hay ventas registradas hoy</p>
+              {ventasFiltradas.length === 0 ? (
+                <div className="text-center py-16 space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-secondary mx-auto flex items-center justify-center">
+                    <Search className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground font-medium">Sin resultados para los filtros aplicados</p>
+                  <p className="text-sm text-muted-foreground">Probá cambiando la fecha, la sede o el turno</p>
+                  <Button variant="outline" size="sm" onClick={() => { 
+                    setFiltroFecha(today); 
+                    setFiltroSede(userRole === "encargado" ? (sedeId || "S001") : "todas"); 
+                    setFiltroTurno("todos");
+                  }}>
+                    Ver ventas de hoy
+                  </Button>
+                </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead className="text-muted-foreground">Hora</TableHead>
-                      <TableHead className="text-muted-foreground">N° Ticket</TableHead>
-                      <TableHead className="text-muted-foreground">Cliente</TableHead>
-                      <TableHead className="text-muted-foreground">Items</TableHead>
-                      <TableHead className="text-muted-foreground">Medio</TableHead>
-                      <TableHead className="text-muted-foreground text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {ventas.map((venta) => (
-                      <TableRow key={venta.id} className="border-border">
-                        <TableCell className="text-foreground">{venta.hora}</TableCell>
-                        <TableCell className="font-mono text-sm text-muted-foreground">{venta.id}</TableCell>
-                        <TableCell className="text-foreground">
-                          {venta.cliente || <span className="text-muted-foreground">-</span>}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {venta.items.map(i => `${i.cantidad}x ${i.nombre}`).join(", ")}
-                        </TableCell>
-                        <TableCell>
-                          <span className="px-2 py-1 rounded-full text-xs bg-secondary text-foreground">
-                            {venta.medio}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-primary">
-                          ${venta.total.toLocaleString()}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border">
+                        <TableHead className="text-muted-foreground">Fecha</TableHead>
+                        <TableHead className="text-muted-foreground">Hora</TableHead>
+                        <TableHead className="text-muted-foreground">Turno</TableHead>
+                        <TableHead className="text-muted-foreground">Sede</TableHead>
+                        <TableHead className="text-muted-foreground">N° Ticket</TableHead>
+                        <TableHead className="text-muted-foreground">Cliente</TableHead>
+                        <TableHead className="text-muted-foreground">Items</TableHead>
+                        <TableHead className="text-muted-foreground">Medio</TableHead>
+                        <TableHead className="text-muted-foreground text-right">Total</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {ventasFiltradas.map((venta) => (
+                        <TableRow key={venta.id} className="border-border">
+                          <TableCell className="text-muted-foreground text-sm">{venta.fecha}</TableCell>
+                          <TableCell className="text-foreground">{venta.hora}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              venta.turno === "mañana"
+                                ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400"
+                                : venta.turno === "tarde"
+                                ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                                : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            }`}>
+                              {venta.turno === "mañana" ? "☀️" : venta.turno === "tarde" ? "🌤️" : "🌙"} {venta.turno}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-foreground text-sm">{venta.sede}</TableCell>
+                          <TableCell className="font-mono text-sm text-muted-foreground">{venta.id}</TableCell>
+                          <TableCell className="text-foreground">
+                            {venta.cliente || <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
+                            {venta.items.map(i => `${i.cantidad}× ${i.nombre}`).join(", ")}
+                          </TableCell>
+                          <TableCell>
+                            <span className="px-2 py-1 rounded-full text-xs bg-secondary text-foreground">
+                              {venta.medio}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-primary">
+                            ${venta.total.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
       )}
+
 
       {/* Stock View */}
       {view === "stock" && attemptingOrder && outOfStockProducts.length === 0 && lowStockProducts.length === 0 && !isPreventiveOrder ? (
