@@ -810,7 +810,10 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
             </Button>
             {userRole !== "secretaria" && (
               <Button 
-                onClick={() => setIsPreventiveOrder(true)}
+                onClick={() => {
+                  setIsPreventiveOrder(true)
+                  setShowOrderDialog(true)
+                }}
                 className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 min-w-[200px]"
               >
                 Realizar Pedido Preventivo
