@@ -157,7 +157,13 @@ const ventasHoy: Venta[] = [
 
 type StockSortKey = "nombre" | "precio" | "stock" | "minimo"
 
-let globalLastOrder: { usuario: string, fecha: string, hora: string, resumen: string } | null = null;
+let globalLastOrder: {
+  usuario: string
+  fecha: string
+  hora: string
+  resumen: string
+  productQuantities: Record<number, number>
+} | null = null
 
 export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, userRole }: AdministracionKioscoProps) {
   const hasShortage = productos.some(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
@@ -363,11 +369,17 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     const orderNumber = `PED-${Date.now().toString().slice(-6)}`
     const selectedProds = productos.filter(p => selectedProducts.includes(p.id))
 
+    const quantities: Record<number, number> = {}
+    selectedProds.forEach(p => {
+      quantities[p.id] = preventiveQuantities[p.id] || (p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20)
+    })
+
     globalLastOrder = {
       usuario: userRole,
       fecha: new Date().toLocaleDateString("es-AR"),
       hora: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
-      resumen: selectedProds.map(p => `${p.nombre} (x${preventiveQuantities[p.id] || (p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20)})`).join(", ")
+      resumen: selectedProds.map(p => `${p.nombre} (x${quantities[p.id]})`).join(", "),
+      productQuantities: quantities,
     }
 
     setConfirmedOrder({
@@ -961,6 +973,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                       <TableHead className="text-muted-foreground text-center">Stock Actual</TableHead>
                       <TableHead className="text-muted-foreground text-center">Mínimo</TableHead>
                       <TableHead className="text-muted-foreground text-center">Estado</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Estado de Reposición</TableHead>
                       {userRole !== "secretaria" && <TableHead className="text-muted-foreground text-center w-32">Reponer (Cant.)</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -1039,6 +1052,48 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                                 OK
                               </span>
                             )}
+                          </TableCell>
+                          {/* ── Estado de Reposición ─────────────────── */}
+                          <TableCell className="text-center">
+                            {(() => {
+                              const lastQty = globalLastOrder?.productQuantities?.[producto.id]
+                              const manualQty = preventiveQuantities[producto.id]
+                              const isSelected = selectedProducts.includes(producto.id)
+
+                              if (isSelected && isPreventiveOrder && manualQty && lastQty) {
+                                // Suma: base del historial + refuerzo manual
+                                return (
+                                  <span
+                                    title="Cantidad base del sistema + refuerzo manual"
+                                    className="inline-flex items-center gap-1 cursor-help"
+                                  >
+                                    <span className="text-xs text-muted-foreground/60">{lastQty}</span>
+                                    <span className="text-xs text-muted-foreground/60">+</span>
+                                    <span className="text-xs font-bold" style={{ color: "#C2D8C4" }}>{manualQty}</span>
+                                  </span>
+                                )
+                              }
+
+                              if (isSelected && isPreventiveOrder && manualQty) {
+                                // Solo cantidad manual (sin historial previo)
+                                return (
+                                  <span className="inline-flex items-center gap-1">
+                                    <span className="text-xs font-bold" style={{ color: "#C2D8C4" }}>📦 {manualQty}</span>
+                                  </span>
+                                )
+                              }
+
+                              if (lastQty) {
+                                // Badge del historial reciente
+                                return (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-secondary text-muted-foreground">
+                                    📦 {lastQty}
+                                  </span>
+                                )
+                              }
+
+                              return <span className="text-muted-foreground/40 text-xs">-</span>
+                            })()}
                           </TableCell>
                           {userRole !== "secretaria" && (
                             <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
