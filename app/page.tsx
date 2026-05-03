@@ -3,8 +3,8 @@
 import { useState } from "react"
 import { LoginScreen, UserRole } from "@/components/squat-gym/login-screen"
 import { Dashboard } from "@/components/squat-gym/dashboard"
-import { pagosPendientesIniciales, productosIniciales, alumnosIniciales, planesIniciales, promocionesIniciales, recibosIniciales, ventasKioscoIniciales } from "@/components/squat-gym/data"
-import { PagoPendiente, Product, Alumno, Plan, Promocion, Recibo, VentaKiosco } from "@/components/squat-gym/types"
+import { pagosPendientesIniciales, productosIniciales, alumnosIniciales, planesIniciales, promocionesIniciales, recibosIniciales, ventasKioscoIniciales, registrosPagosIniciales } from "@/components/squat-gym/data"
+import { PagoPendiente, Product, Alumno, Plan, Promocion, Recibo, VentaKiosco, RegistroPago } from "@/components/squat-gym/types"
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -17,6 +17,7 @@ export default function Home() {
   const [promociones, setPromociones] = useState<Promocion[]>(promocionesIniciales)
   const [recibos, setRecibos] = useState<Recibo[]>(recibosIniciales)
   const [ventas, setVentas] = useState<VentaKiosco[]>(ventasKioscoIniciales)
+  const [registrosPagos, setRegistrosPagos] = useState<RegistroPago[]>(registrosPagosIniciales)
 
   // Tracks which alumno will log in next — rotates through all alumnos
   const [nextAlumnoIndex, setNextAlumnoIndex] = useState(0)
@@ -65,6 +66,8 @@ export default function Home() {
       setRecibos={setRecibos}
       ventas={ventas}
       setVentas={setVentas}
+      registrosPagos={registrosPagos}
+      setRegistrosPagos={setRegistrosPagos}
     />
   )
 }

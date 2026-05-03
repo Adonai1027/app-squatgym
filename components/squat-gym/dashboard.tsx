@@ -36,7 +36,7 @@ import { ConsolaConfiguracion } from "./consola-configuracion"
 import { RegistroPagos } from "./registro-pagos"
 import { UserRole } from "./login-screen"
 
-import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco } from "./types"
+import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco, RegistroPago } from "./types"
 
 interface DashboardProps {
   onLogout: () => void
@@ -56,6 +56,8 @@ interface DashboardProps {
   setRecibos: (r: Recibo[]) => void
   ventas: VentaKiosco[]
   setVentas: (v: VentaKiosco[]) => void
+  registrosPagos: RegistroPago[]
+  setRegistrosPagos: (r: RegistroPago[]) => void
 }
 
 type View =
@@ -86,7 +88,7 @@ function getInitialView(role: UserRole): View {
 export function Dashboard({
   onLogout, userRole, activeAlumnoIndex, pagosPendientes, setPagosPendientes, productos, setProductos,
   alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos,
-  ventas, setVentas
+  ventas, setVentas, registrosPagos, setRegistrosPagos
 }: DashboardProps) {
   const [currentView, _setCurrentView] = useState<View>(getInitialView(userRole))
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
@@ -168,6 +170,8 @@ export function Dashboard({
             showToast={showToast}
             pagosPendientes={pagosPendientes}
             setPagosPendientes={setPagosPendientes}
+            registrosPagos={registrosPagos}
+            setRegistrosPagos={setRegistrosPagos}
           />
         )
       case "kiosco-pos":
@@ -233,7 +237,9 @@ export function Dashboard({
         return (
           <ConsolaConfiguracion
             planes={planes}
+            setPlanes={setPlanes}
             promociones={promociones}
+            setPromociones={setPromociones}
           />
         )
       case "registro-pagos":

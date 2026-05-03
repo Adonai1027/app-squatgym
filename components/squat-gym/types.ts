@@ -74,3 +74,16 @@ export interface VentaKiosco {
   sede: string
   turno: Turno
 }
+
+export interface RegistroPago {
+  id: string
+  proveedor: Proveedor
+  concepto: string
+  monto: number
+  medioPago: string
+  factura: string
+  fechaPago: string
+  horaPago: string
+  numero: string
+  notas: string
+}

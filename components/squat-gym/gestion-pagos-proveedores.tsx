@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 
-import { Proveedor, PagoPendiente } from "./types"
+import { Proveedor, PagoPendiente, RegistroPago } from "./types"
 import { proveedoresIniciales } from "./data"
 
 interface GestionPagosProps {
@@ -48,22 +48,12 @@ interface GestionPagosProps {
   showToast: (message: string, type?: "success" | "info") => void
   pagosPendientes: PagoPendiente[]
   setPagosPendientes: (p: PagoPendiente[]) => void
+  registrosPagos: RegistroPago[]
+  setRegistrosPagos: (r: RegistroPago[]) => void
 }
 
 type PaymentView = "list" | "form" | "receipt"
 
-interface RegistroPago {
-  id: string
-  proveedor: Proveedor
-  concepto: string
-  monto: number
-  medioPago: string
-  factura: string
-  fechaPago: string
-  horaPago: string
-  numero: string
-  notas: string
-}
 
 const sedeInfo = {
   nombre: "SquatGym - Sede Central",
@@ -89,9 +79,8 @@ const mediosPago = [
   { id: "cheque", nombre: "Cheque", icon: Receipt },
 ]
 
-export function GestionPagosProveedores({ onBack, showToast, pagosPendientes, setPagosPendientes }: GestionPagosProps) {
+export function GestionPagosProveedores({ onBack, showToast, pagosPendientes, setPagosPendientes, registrosPagos, setRegistrosPagos }: GestionPagosProps) {
   const [view, setView] = useState<PaymentView>("list")
-  const [registrosPagos, setRegistrosPagos] = useState<RegistroPago[]>([])
 
   // Form state
   const [selectedProveedor, setSelectedProveedor] = useState<string>("")

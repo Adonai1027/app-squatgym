@@ -1,4 +1,4 @@
-import { Product, Proveedor, PagoPendiente, Plan, Promocion, Alumno, Recibo, VentaKiosco, Turno } from "./types"
+import { Product, Proveedor, PagoPendiente, Plan, Promocion, Alumno, Recibo, VentaKiosco, Turno, RegistroPago } from "./types"
 
 // Helper to build a past date string "DD/MM/AAAA"
 function pastDate(daysAgo: number): string {
@@ -112,6 +112,8 @@ export const pagosPendientesIniciales: PagoPendiente[] = [
     diasAtraso: 0,
   },
 ]
+
+export const registrosPagosIniciales: RegistroPago[] = []
 
 export const productosIniciales: Product[] = [
   { id: 1, nombre: "Agua Mineral 500ml", precio: 500, stock: 3, minimo: 10, imagen: "💧" },

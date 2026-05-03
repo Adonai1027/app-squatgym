@@ -22,13 +22,13 @@ import { sedesOptions } from "./data"
 
 interface ConsolaConfiguracionProps {
   planes: Plan[]
+  setPlanes: (planes: Plan[]) => void
   promociones: Promocion[]
+  setPromociones: (promociones: Promocion[]) => void
 }
 
-export function ConsolaConfiguracion({ planes: initialPlanes, promociones: initialPromociones }: ConsolaConfiguracionProps) {
+export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromociones }: ConsolaConfiguracionProps) {
   const [activeTab, setActiveTab] = useState<"planes" | "promociones">("planes")
-  const [planes, setPlanes] = useState<Plan[]>(initialPlanes)
-  const [promociones, setPromociones] = useState<Promocion[]>(initialPromociones)
   
   // Sheet state
   const [isSheetOpen, setIsSheetOpen] = useState(false)
