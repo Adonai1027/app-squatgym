@@ -167,7 +167,7 @@ let globalLastOrder: {
   productQuantities: Record<number, number>
 } | null = null
 
-export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, userRole, sedeId = "S001", sede = "Sede Central" }: AdministracionKioscoProps) {
+export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, ventas, setVentas, setPagosPendientes, userRole, sedeId = "S001", sede = "Sede Central" }: AdministracionKioscoProps) {
   const hasShortage = productos.some(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
   
   const [view, setView] = useState<KioscoView>(initialView || "hub")
@@ -191,12 +191,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     openOrderDialogOnMount && hasShortage ? initialQuantities : {}
   )
   const [orderDetails, setOrderDetails] = useState({ proveedor: "", sede: "", notas: "" })
-  const [ventas, setVentasState] = useState<VentaKiosco[]>(() => loadVentas())
-
-  const setVentas = (updated: VentaKiosco[]) => {
-    setVentasState(updated)
-    saveVentas(updated)
-  }
+  // ventas state is now passed from parent Dashboard
 
   // Sync seed data into localStorage on first mount (idempotent)
   useEffect(() => {
@@ -426,11 +421,36 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       )
     )
 
+    if (orderType === "externo") {
+      const estimatedMonto = selectedProds.reduce((sum, p) => sum + (p.precio * (preventiveQuantities[p.id] || 0)), 0)
+      const provider = proveedoresOptions.find(p => p.nombre === orderDetails.proveedor) || proveedoresOptions[0]
+      
+      const newPago: any = {
+        id: `EG-${Date.now().toString().slice(-6)}`,
+        proveedor: {
+          id: provider.id,
+          nombre: provider.nombre,
+          rubro: provider.rubro,
+          contacto: "Pendiente",
+          telefono: "Pendiente",
+          email: "pendiente@proveedor.com"
+        },
+        concepto: `Reposición Kiosco - ${orderNumber}`,
+        monto: estimatedMonto,
+        fechaVencimiento: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        diasAtraso: 0,
+      }
+      
+      if (setPagosPendientes) {
+        setPagosPendientes((prev: any) => [newPago, ...prev])
+      }
+    }
+
     setShowOrderDialog(false)
     setShowOrderConfirmation(true)
     showToast(
       orderType === "externo"
-        ? "Pedido a proveedor generado"
+        ? "Pedido a proveedor generado y obligación de pago creada"
         : "Pedido interno generado"
     )
   }
@@ -1124,6 +1144,14 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                 }}>
                   <ClipboardList className="w-4 h-4 mr-2" />
                   Auditar Stock
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => showToast("Imprimiendo reporte de inventario...", "info")} 
+                  className="gap-2 border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10"
+                >
+                  <Printer className="w-4 h-4" />
+                  Imprimir Reporte
                 </Button>
                 {userRole !== "secretaria" && (
                   <Button

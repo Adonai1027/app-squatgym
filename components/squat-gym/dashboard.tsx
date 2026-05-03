@@ -21,6 +21,11 @@ import {
   Menu,
   CheckCircle2,
   History,
+  TrendingUp,
+  BarChart3,
+  Users,
+  Truck,
+  Printer
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,7 +36,7 @@ import { ConsolaConfiguracion } from "./consola-configuracion"
 import { RegistroPagos } from "./registro-pagos"
 import { UserRole } from "./login-screen"
 
-import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo } from "./types"
+import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco } from "./types"
 
 interface DashboardProps {
   onLogout: () => void
@@ -49,6 +54,8 @@ interface DashboardProps {
   setPromociones: (p: Promocion[]) => void
   recibos: Recibo[]
   setRecibos: (r: Recibo[]) => void
+  ventas: VentaKiosco[]
+  setVentas: (v: VentaKiosco[]) => void
 }
 
 type View =
@@ -78,7 +85,8 @@ function getInitialView(role: UserRole): View {
 // ─────────────────────────────────────────────────────────────────────────────
 export function Dashboard({
   onLogout, userRole, activeAlumnoIndex, pagosPendientes, setPagosPendientes, productos, setProductos,
-  alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos
+  alumnos, setAlumnos, planes, setPlanes, promociones, setPromociones, recibos, setRecibos,
+  ventas, setVentas
 }: DashboardProps) {
   const [currentView, _setCurrentView] = useState<View>(getInitialView(userRole))
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
@@ -171,6 +179,9 @@ export function Dashboard({
             initialView="pos"
             productos={productos}
             setProductos={setProductos}
+            ventas={ventas}
+            setVentas={setVentas}
+            setPagosPendientes={setPagosPendientes}
             userRole={userRole}
           />
         )
@@ -183,6 +194,9 @@ export function Dashboard({
             initialView="stock"
             productos={productos}
             setProductos={setProductos}
+            ventas={ventas}
+            setVentas={setVentas}
+            setPagosPendientes={setPagosPendientes}
             userRole={userRole}
           />
         )
@@ -196,6 +210,9 @@ export function Dashboard({
             openOrderDialogOnMount
             productos={productos}
             setProductos={setProductos}
+            ventas={ventas}
+            setVentas={setVentas}
+            setPagosPendientes={setPagosPendientes}
             userRole={userRole}
           />
         )
@@ -239,12 +256,19 @@ export function Dashboard({
             initialView="ventas-diarias"
             productos={productos}
             setProductos={setProductos}
+            ventas={ventas}
+            setVentas={setVentas}
+            setPagosPendientes={setPagosPendientes}
             userRole={userRole}
           />
         )
       case "secretaria-dashboard":
         return (
-          <SecretariaDashboard setCurrentView={setCurrentView} />
+          <SecretariaDashboard 
+            setCurrentView={setCurrentView} 
+            productos={productos}
+            ventas={ventas}
+          />
         )
       default:
         return (
@@ -346,7 +370,6 @@ export function Dashboard({
 
       {/* ── Main ── */}
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
-        {/* Top bar with non-intrusive alert bell */}
         {/* Top bar with non-intrusive alert bell */}
         <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-4 md:px-8 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3 md:hidden">
@@ -622,13 +645,13 @@ function AdministradorNav({
 
       <div className="pt-3 pb-1 px-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Gestión Global
+          Gestión Comercial
         </p>
       </div>
       <NavButton
         active={currentView === "consola-configuracion"}
         icon={<Settings className="w-4 h-4" />}
-        label="Consola Central"
+        label="Planes y Promos"
         onClick={() => setCurrentView("consola-configuracion")}
       />
 
@@ -920,50 +943,154 @@ function QuickCard({
 }
 
 // ─── Secretaria Dashboard ─────────────────────────────────────────────────────
-function SecretariaDashboard({ setCurrentView }: { setCurrentView: (v: View) => void }) {
+function SecretariaDashboard({ 
+  setCurrentView, 
+  productos,
+  ventas 
+}: { 
+  setCurrentView: (v: View) => void,
+  productos: Product[],
+  ventas: VentaKiosco[]
+}) {
   const now = new Date()
   const hora = now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
   const fecha = now.toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })
+  
+  const todayStr = new Date().toLocaleDateString("es-AR")
+  const ventasHoy = ventas.filter(v => v.fecha === todayStr)
+  const totalHoy = ventasHoy.reduce((acc, v) => acc + v.total, 0)
+  
+  const stockCritico = productos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto">
       {/* Greeting */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Panel de Secretaría</h2>
-        <p className="text-muted-foreground mt-1 capitalize">
-          {fecha} · {hora}
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">¡Hola de nuevo! 👋</h2>
+          <p className="text-muted-foreground mt-1 capitalize text-lg">
+            {fecha} · {hora}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button 
+            onClick={() => setCurrentView("registro-pagos")}
+            className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold px-6"
+          >
+            <CreditCard className="w-4 h-4 mr-2" />
+            Cobrar Cuota
+          </Button>
+          <Button 
+            onClick={() => setCurrentView("kiosco-pos")}
+            variant="outline"
+            className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold px-6"
+          >
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Venta Kiosco
+          </Button>
+        </div>
       </div>
 
-      {/* Quick access */}
+      {/* Operative Panel */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Card 1: Ventas del Kiosco hoy */}
+        <Card className="border-border bg-card overflow-hidden group hover:shadow-md transition-shadow">
+          <CardHeader className="pb-2 bg-primary/5">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" />
+              Ventas del Kiosco Hoy
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black text-foreground">${totalHoy.toLocaleString()}</span>
+              <span className="text-sm text-muted-foreground">{ventasHoy.length} transacciones</span>
+            </div>
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
+              <span>Última venta: {ventasHoy[0]?.hora || "--:--"}</span>
+              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={() => setCurrentView("kiosco-pos")}>
+                Ir a POS →
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card 2: Alertas de stock críticas */}
+        <Card className={`border-border bg-card overflow-hidden group hover:shadow-md transition-shadow ${stockCritico.length > 0 ? "border-warning/50" : ""}`}>
+          <CardHeader className={`pb-2 ${stockCritico.length > 0 ? "bg-warning/5" : "bg-primary/5"}`}>
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+              <AlertTriangle className={`w-4 h-4 ${stockCritico.length > 0 ? "text-warning" : "text-primary"}`} />
+              Alertas de Stock
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {stockCritico.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-warning">{stockCritico.length}</span>
+                  <span className="text-sm text-muted-foreground">Productos bajo mínimo</span>
+                </div>
+                <div className="flex -space-x-2 overflow-hidden py-1">
+                   {stockCritico.slice(0, 5).map(p => (
+                     <div key={p.id} className="w-8 h-8 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-sm shadow-sm" title={p.nombre}>
+                       {p.imagen}
+                     </div>
+                   ))}
+                   {stockCritico.length > 5 && (
+                     <div className="w-8 h-8 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                       +{stockCritico.length - 5}
+                     </div>
+                   )}
+                </div>
+                <Button 
+                  onClick={() => setCurrentView("kiosco-stock")}
+                  className="w-full bg-warning/10 text-warning hover:bg-warning/20 border-0 text-xs font-bold h-8"
+                >
+                  Resolver Alertas Ahora
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4 text-center">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="w-6 h-6 text-primary" />
+                </div>
+                <p className="font-semibold text-foreground">Stock al día</p>
+                <p className="text-xs text-muted-foreground">No hay productos bajo el mínimo</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Otras Gestiones */}
       <div>
-        <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-          Accesos Rápidos
+        <p className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
+          Otras Operaciones
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           <QuickCard
-            icon={<CreditCard className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Cobro de Cuotas"
-            sub="Buscar alumno y registrar pago"
-            onClick={() => setCurrentView("registro-pagos")}
-          />
-          <QuickCard
-            icon={<ShoppingCart className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Punto de Venta"
-            sub="Iniciar venta en kiosco"
-            onClick={() => setCurrentView("kiosco-pos")}
-          />
-          <QuickCard
-            icon={<Package className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Ver Stock"
-            sub="Control de inventario del kiosco"
+            icon={<Package className="w-6 h-6 text-[#C2D8C4]" />}
+            title="Inventario"
+            sub="Ver catálogo"
             onClick={() => setCurrentView("kiosco-stock")}
           />
           <QuickCard
-            icon={<ClipboardList className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Generar Pedido"
-            sub="Solicitar reposición de productos"
+            icon={<ClipboardList className="w-6 h-6 text-[#C2D8C4]" />}
+            title="Reposición"
+            sub="Generar pedido"
             onClick={() => setCurrentView("kiosco-reposicion")}
+          />
+          <QuickCard
+            icon={<BarChart3 className="w-6 h-6 text-[#C2D8C4]" />}
+            title="Mis Ventas"
+            sub="Historial hoy"
+            onClick={() => setCurrentView("kiosco-pos")} 
+          />
+          <QuickCard
+            icon={<Users className="w-6 h-6 text-[#C2D8C4]" />}
+            title="Socios"
+            sub="Listado alumnos"
+            onClick={() => setCurrentView("registro-pagos")}
           />
         </div>
       </div>
