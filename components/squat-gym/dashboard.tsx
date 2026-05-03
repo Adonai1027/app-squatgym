@@ -953,30 +953,12 @@ function SecretariaDashboard({
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
-      {/* Greeting */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
         <div>
           <h2 className="text-3xl font-bold text-foreground">¡Hola de nuevo! 👋</h2>
           <p className="text-muted-foreground mt-1 capitalize text-lg">
             {fecha} · {hora}
           </p>
-        </div>
-        <div className="flex gap-3">
-          <Button 
-            onClick={() => setCurrentView("registro-pagos")}
-            className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold px-6"
-          >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Cobrar Cuota
-          </Button>
-          <Button 
-            onClick={() => setCurrentView("kiosco-pos")}
-            variant="outline"
-            className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold px-6"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Venta Kiosco
-          </Button>
         </div>
       </div>
 
@@ -997,9 +979,6 @@ function SecretariaDashboard({
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-4">
               <span>Última venta: {ventasHoy[0]?.hora || "--:--"}</span>
-              <Button variant="link" size="sm" className="h-auto p-0 text-primary" onClick={() => setCurrentView("kiosco-pos")}>
-                Ir a POS →
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -1049,39 +1028,6 @@ function SecretariaDashboard({
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Otras Gestiones */}
-      <div>
-        <p className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">
-          Otras Operaciones
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickCard
-            icon={<Package className="w-6 h-6 text-[#C2D8C4]" />}
-            title="Inventario"
-            sub="Ver catálogo"
-            onClick={() => setCurrentView("kiosco-stock")}
-          />
-          <QuickCard
-            icon={<ClipboardList className="w-6 h-6 text-[#C2D8C4]" />}
-            title="Reposición"
-            sub="Generar pedido"
-            onClick={() => setCurrentView("kiosco-reposicion")}
-          />
-          <QuickCard
-            icon={<BarChart3 className="w-6 h-6 text-[#C2D8C4]" />}
-            title="Mis Ventas"
-            sub="Historial hoy"
-            onClick={() => setCurrentView("kiosco-pos")} 
-          />
-          <QuickCard
-            icon={<Users className="w-6 h-6 text-[#C2D8C4]" />}
-            title="Socios"
-            sub="Listado alumnos"
-            onClick={() => setCurrentView("registro-pagos")}
-          />
-        </div>
       </div>
     </div>
   )

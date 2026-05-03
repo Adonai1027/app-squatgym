@@ -170,7 +170,7 @@ export function ConsolaConfiguracion({ planes: initialPlanes, promociones: initi
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-xl font-black text-foreground">{plan.nombre}</CardTitle>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleEditPlan(plan)}>
+                  <Button variant="secondary" size="icon" className="h-9 w-9 text-primary hover:bg-primary hover:text-primary-foreground transition-colors rounded-full bg-primary/10 shadow-sm" onClick={() => handleEditPlan(plan)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -192,11 +192,6 @@ export function ConsolaConfiguracion({ planes: initialPlanes, promociones: initi
                   </span>
                 </div>
               </CardContent>
-              <CardFooter className="bg-secondary/20 border-t border-border mt-auto px-6 py-4">
-                <Button variant="link" className="text-primary font-bold p-0 h-auto text-xs" onClick={() => handleEditPlan(plan)}>
-                  CONFIGURAR DETALLES →
-                </Button>
-              </CardFooter>
             </Card>
           ))}
         </div>
@@ -233,7 +228,7 @@ export function ConsolaConfiguracion({ planes: initialPlanes, promociones: initi
                       <h4 className="text-xl font-bold text-foreground">{promo.codigo}</h4>
                       <p className="text-sm text-muted-foreground mt-2">Válido para planes seleccionados y pago en efectivo.</p>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleEditPromo(promo)}>
+                    <Button variant="secondary" size="icon" className="h-9 w-9 text-primary hover:bg-primary hover:text-primary-foreground transition-colors rounded-full bg-primary/10 shadow-sm" onClick={() => handleEditPromo(promo)}>
                       <Edit2 className="w-4 h-4" />
                     </Button>
                   </div>

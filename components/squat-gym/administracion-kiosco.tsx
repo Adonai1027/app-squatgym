@@ -59,7 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { Product, VentaKiosco, Turno } from "./types"
+import { Product, VentaKiosco, Turno, PagoPendiente } from "./types"
 import { ventasKioscoIniciales, sedesOptions as sedesData } from "./data"
 
 const VENTAS_STORAGE_KEY = "squatgym_ventas_kiosco"
@@ -102,6 +102,9 @@ interface AdministracionKioscoProps {
   openOrderDialogOnMount?: boolean
   productos: Product[]
   setProductos: (p: Product[]) => void
+  ventas: VentaKiosco[] 
+  setVentas: (v: VentaKiosco[]) => void
+  setPagosPendientes: (p: any) => void
   userRole?: string
   sedeId?: string
   sede?: string
