@@ -346,17 +346,6 @@ export function Dashboard({
             </div>
           </div>
 
-          {(userRole === "encargado" || userRole === "administrador") && (
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-3 border-[#C2D8C4]/40 text-[#C2D8C4] hover:bg-[#C2D8C4]/10 text-sm"
-              onClick={() => showToast("Generando informe...", "info")}
-            >
-              <FileDown className="w-4 h-4" />
-              Descargar Informe
-            </Button>
-          )}
-
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-destructive hover:bg-destructive/10 hover:text-destructive text-sm"
