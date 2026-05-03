@@ -16,8 +16,57 @@ interface PortalSocioProps {
 export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps) {
   const [showPayment, setShowPayment] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<"QR" | "Transferencia" | "Tarjeta" | null>(null)
+  const [viewingReceipt, setViewingReceipt] = useState<Recibo | null>(null)
 
   const diasParaVencer = Math.floor((new Date(alumno.fechaVencimiento).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+
+  if (viewingReceipt) {
+    return (
+      <div className="max-w-md mx-auto space-y-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Button variant="outline" onClick={() => setViewingReceipt(null)}>
+            ← Volver
+          </Button>
+          <h2 className="text-xl font-bold">Comprobante</h2>
+        </div>
+
+        <Card className="border-[#C2D8C4] bg-card overflow-hidden">
+          <div className="bg-[#C2D8C4] p-4 text-center">
+            <Receipt className="w-12 h-12 text-[#222222] mx-auto mb-2" />
+            <h3 className="text-lg font-bold text-[#222222]">Recibo Digital</h3>
+            <p className="text-sm text-[#222222]/80">SquatGym</p>
+          </div>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex justify-between border-b border-border pb-4">
+              <span className="text-muted-foreground">Fecha</span>
+              <span className="font-medium text-foreground">{new Date(viewingReceipt.fecha).toLocaleDateString()}</span>
+            </div>
+            <div className="flex justify-between border-b border-border pb-4">
+              <span className="text-muted-foreground">Alumno</span>
+              <span className="font-medium text-foreground">{alumno.nombre}</span>
+            </div>
+            <div className="flex justify-between border-b border-border pb-4">
+              <span className="text-muted-foreground">Concepto</span>
+              <span className="font-medium text-foreground">{viewingReceipt.concepto}</span>
+            </div>
+            <div className="flex justify-between border-b border-border pb-4">
+              <span className="text-muted-foreground">Medio de Pago</span>
+              <span className="font-medium text-foreground">{viewingReceipt.metodo}</span>
+            </div>
+            <div className="flex justify-between pt-2">
+              <span className="text-lg font-bold text-foreground">Total Pagado</span>
+              <span className="text-2xl font-bold text-[#C2D8C4]">${viewingReceipt.monto.toLocaleString()}</span>
+            </div>
+
+            <Button className="w-full mt-6 bg-secondary text-foreground hover:bg-secondary/80">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Imprimir / Descargar
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   if (showPayment) {
     return (
@@ -197,7 +246,10 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-sm text-foreground">${recibo.monto.toLocaleString()}</p>
-                      <button className="text-xs text-[#C2D8C4] hover:underline flex items-center gap-1 justify-end mt-1">
+                      <button 
+                        onClick={() => setViewingReceipt(recibo)}
+                        className="text-xs text-[#C2D8C4] hover:underline flex items-center gap-1 justify-end mt-1"
+                      >
                         <ExternalLink className="w-3 h-3" />
                         Ver recibo
                       </button>

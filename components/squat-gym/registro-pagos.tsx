@@ -5,6 +5,13 @@ import { Search, UserCircle, CreditCard, Tag, Calendar, Receipt, ExternalLink } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Alumno, Plan, Promocion } from "./types"
 
 interface RegistroPagosProps {
@@ -21,6 +28,13 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
   const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null)
   const [selectedPromo, setSelectedPromo] = useState<Promocion | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<"Efectivo" | "Tarjeta" | "Transferencia">("Efectivo")
+  
+  // Nuevos estados
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("")
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
+  const [prorrateoFactor, setProrrateoFactor] = useState<number | null>(null)
+
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
 
@@ -28,7 +42,11 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
     const found = alumnos.find(a => a.dni === searchTerm || a.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
     if (found) {
       setSelectedAlumno(found)
+      setSelectedPlanId(found.planId)
       setSelectedPromo(null)
+      setCouponCode("")
+      setAppliedCoupon(null)
+      setProrrateoFactor(null)
       setShowReceipt(false)
     } else {
       showToast("Alumno no encontrado", "info")
@@ -38,13 +56,22 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
 
   const handlePagar = () => {
     if (!selectedAlumno) return
-    const plan = planes.find(p => p.id === selectedAlumno.planId)
+    const plan = planes.find(p => p.id === selectedPlanId)
     if (!plan) return
 
-    let total = selectedAlumno.deuda > 0 ? selectedAlumno.deuda : plan.precio
-    if (selectedPromo) {
-      total = total - (total * selectedPromo.descuentoPorcentaje / 100)
+    let montoBase = selectedAlumno.deuda > 0 ? selectedAlumno.deuda : plan.precio
+    if (prorrateoFactor !== null) {
+      montoBase = montoBase * prorrateoFactor
     }
+
+    let descuento = 0
+    if (selectedPromo) {
+      descuento = montoBase * (selectedPromo.descuentoPorcentaje / 100)
+    } else if (appliedCoupon) {
+      descuento = montoBase * 0.20 // 20% OFF por cupón
+    }
+
+    const total = montoBase - descuento
 
     onPagar(selectedAlumno.id, total, selectedMethod, selectedPromo?.id)
 
@@ -55,7 +82,8 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
       plan: plan.nombre,
       total: total,
       metodo: selectedMethod,
-      promo: selectedPromo?.codigo
+      promo: selectedPromo ? selectedPromo.codigo : (appliedCoupon ? `CUPON: ${appliedCoupon}` : undefined),
+      prorrateo: prorrateoFactor !== null
     })
 
     setShowReceipt(true)
@@ -145,11 +173,22 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
       </div>
 
       {selectedAlumno && (() => {
-        const plan = planes.find(p => p.id === selectedAlumno.planId)
+        const plan = planes.find(p => p.id === selectedPlanId)
         if (!plan) return null
 
-        const montoBase = selectedAlumno.deuda > 0 ? selectedAlumno.deuda : plan.precio
-        const descuento = selectedPromo ? montoBase * (selectedPromo.descuentoPorcentaje / 100) : 0
+        let montoBase = selectedAlumno.deuda > 0 ? selectedAlumno.deuda : plan.precio
+        const prop = prorrateoFactor
+        if (prop !== null) {
+          montoBase = montoBase * prop
+        }
+
+        let descuento = 0
+        if (selectedPromo) {
+          descuento = montoBase * (selectedPromo.descuentoPorcentaje / 100)
+        } else if (appliedCoupon) {
+          descuento = montoBase * 0.20
+        }
+
         const total = montoBase - descuento
 
         return (
@@ -171,8 +210,19 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                   <p className="font-medium text-foreground">{selectedAlumno.dni}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Plan Actual</p>
-                  <p className="font-medium text-foreground">{plan.nombre} (${plan.precio.toLocaleString()})</p>
+                  <p className="text-sm text-muted-foreground mb-1">Plan a cobrar</p>
+                  <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Seleccionar Plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {planes.map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nombre} (${p.precio.toLocaleString()})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estado</p>
@@ -203,7 +253,13 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                     {promociones.filter(p => p.activa).map(promo => (
                       <button
                         key={promo.id}
-                        onClick={() => setSelectedPromo(selectedPromo?.id === promo.id ? null : promo)}
+                        onClick={() => {
+                          if (appliedCoupon) {
+                            showToast("No se puede aplicar una promoción si ya hay un cupón activo.", "info")
+                            return
+                          }
+                          setSelectedPromo(selectedPromo?.id === promo.id ? null : promo)
+                        }}
                         className={`p-2 rounded-lg border text-sm text-left transition-colors flex justify-between items-center ${selectedPromo?.id === promo.id ? "border-[#C2D8C4] bg-[#C2D8C4]/10 text-[#C2D8C4]" : "border-border hover:border-[#C2D8C4]/50"
                           }`}
                       >
@@ -211,6 +267,34 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                         <span className="text-xs bg-background px-1.5 py-0.5 rounded">-{promo.descuentoPorcentaje}%</span>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium mb-2">Cupón de Descuento (20% OFF)</p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Ej: CLUB-LA-NACION"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      disabled={!!appliedCoupon}
+                    />
+                    {appliedCoupon ? (
+                      <Button variant="outline" onClick={() => { setAppliedCoupon(null); setCouponCode("") }}>Quitar</Button>
+                    ) : (
+                      <Button onClick={() => {
+                        if (selectedPromo) {
+                          showToast("No se puede aplicar un cupón si ya hay una promoción activa.", "info")
+                          return
+                        }
+                        if (!couponCode) {
+                          showToast("Ingrese un código de cupón.", "info")
+                          return
+                        }
+                        setAppliedCoupon(couponCode)
+                        showToast(`Cupón aplicado exitosamente.`, "success")
+                      }}>Aplicar</Button>
+                    )}
                   </div>
                 </div>
 
@@ -239,15 +323,18 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      if (prorrateoFactor !== null) {
+                        setProrrateoFactor(null)
+                        return
+                      }
                       const dayOfMonth = new Date().getDate();
                       const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
                       const prop = (daysInMonth - dayOfMonth + 1) / daysInMonth;
-                      const prorrateado = Math.floor(montoBase * prop);
+                      setProrrateoFactor(prop)
                       showToast(`Prorrateo calculado: ${dayOfMonth}/${daysInMonth} días restantes`, "info");
-                      setSelectedPromo({ id: "PRORRATEO", codigo: "Prorrateo Inscripción", descuentoPorcentaje: (1 - prop) * 100, activa: true });
                     }}
                   >
-                    Calcular Prorrateo
+                    {prorrateoFactor !== null ? "Quitar Prorrateo" : "Calcular Prorrateo"}
                   </Button>
                 </div>
 
@@ -256,9 +343,15 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                     <span className="text-muted-foreground">Monto Base</span>
                     <span>${montoBase.toLocaleString()}</span>
                   </div>
+                  {prorrateoFactor !== null && (
+                    <div className="flex justify-between text-sm text-info">
+                      <span className="text-muted-foreground">Prorrateo Aplicado</span>
+                      <span>-{(montoBase / prorrateoFactor * (1 - prorrateoFactor)).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                  )}
                   {descuento > 0 && (
                     <div className="flex justify-between text-sm text-success">
-                      <span>Descuento ({selectedPromo?.codigo})</span>
+                      <span>Descuento ({selectedPromo?.codigo || appliedCoupon})</span>
                       <span>-${descuento.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                     </div>
                   )}
