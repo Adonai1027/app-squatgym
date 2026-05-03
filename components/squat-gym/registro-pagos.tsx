@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, UserCircle, CreditCard, Tag, Calendar, Receipt, ExternalLink } from "lucide-react"
+import { Search, UserCircle, CreditCard, Tag, Calendar, Receipt, ExternalLink, History } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,18 +12,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Alumno, Plan, Promocion } from "./types"
+import { Alumno, Plan, Promocion, Recibo } from "./types"
 
 interface RegistroPagosProps {
   alumnos: Alumno[]
   planes: Plan[]
   promociones: Promocion[]
+  recibos: Recibo[]
   onPagar: (alumnoId: string, monto: number, metodo: string, promoId?: string) => void
   onBack: () => void
   showToast: (msg: string, type: "success" | "info") => void
 }
 
-export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, showToast }: RegistroPagosProps) {
+export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, onBack, showToast }: RegistroPagosProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null)
   const [selectedPromo, setSelectedPromo] = useState<Promocion | null>(null)
@@ -235,6 +236,28 @@ export function RegistroPagos({ alumnos, planes, promociones, onPagar, onBack, s
                       Al Día
                     </span>
                   )}
+                </div>
+
+                <div className="pt-4 border-t border-border">
+                  <p className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                    <History className="w-4 h-4 text-[#C2D8C4]" />
+                    Historial de Pagos
+                  </p>
+                  <div className="space-y-3">
+                    {(() => {
+                      const historial = recibos.filter(r => r.alumnoId === selectedAlumno.id)
+                      if (historial.length === 0) return <p className="text-sm text-muted-foreground">No hay pagos previos.</p>
+                      return historial.slice(0, 5).map(r => (
+                        <div key={r.id} className="flex justify-between items-center text-sm">
+                          <div>
+                            <p className="font-medium text-foreground">{new Date(r.fecha).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">{r.concepto} · {r.metodo}</p>
+                          </div>
+                          <span className="font-semibold text-[#C2D8C4]">${r.monto.toLocaleString()}</span>
+                        </div>
+                      ))
+                    })()}
+                  </div>
                 </div>
               </CardContent>
             </Card>

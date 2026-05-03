@@ -248,6 +248,7 @@ export function Dashboard({
             alumnos={alumnos}
             planes={planes}
             promociones={promociones}
+            recibos={recibos}
             onPagar={handlePagarAlumno}
             onBack={() => setCurrentView(backTarget)}
             showToast={showToast}
