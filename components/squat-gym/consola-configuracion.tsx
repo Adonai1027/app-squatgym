@@ -29,12 +29,12 @@ interface ConsolaConfiguracionProps {
 
 export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromociones }: ConsolaConfiguracionProps) {
   const [activeTab, setActiveTab] = useState<"planes" | "promociones">("planes")
-  
+
   // Sheet state
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingType, setEditingType] = useState<"plan" | "promo" | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  
+
   // Form states
   const [planForm, setPlanForm] = useState({
     nombre: "",
@@ -42,7 +42,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
     precio: 0,
     sedes: [] as string[]
   })
-  
+
   const [promoForm, setPromoForm] = useState({
     nombre: "",
     codigo: "",
@@ -144,18 +144,16 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
       <div className="flex gap-4 border-b border-border">
         <button
           onClick={() => setActiveTab("planes")}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all font-semibold text-sm ${
-            activeTab === "planes" ? "border-[#C2D8C4] text-[#C2D8C4]" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all font-semibold text-sm ${activeTab === "planes" ? "border-[#C2D8C4] text-[#C2D8C4]" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
         >
           <Settings className="w-4 h-4" />
           Planes y Precios
         </button>
         <button
           onClick={() => setActiveTab("promociones")}
-          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all font-semibold text-sm ${
-            activeTab === "promociones" ? "border-[#C2D8C4] text-[#C2D8C4]" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
+          className={`flex items-center gap-2 px-6 py-3 border-b-2 transition-all font-semibold text-sm ${activeTab === "promociones" ? "border-[#C2D8C4] text-[#C2D8C4]" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
         >
           <Tag className="w-4 h-4" />
           Promociones
@@ -208,18 +206,18 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
       {activeTab === "promociones" && (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between bg-[#C2D8C4]/5 p-6 rounded-2xl border border-[#C2D8C4]/20">
-             <div className="flex items-center gap-4">
-               <div className="w-12 h-12 rounded-2xl bg-[#C2D8C4]/20 flex items-center justify-center">
-                 <TrendingUp className="w-6 h-6 text-[#C2D8C4]" />
-               </div>
-               <div>
-                 <h4 className="font-bold text-foreground">Análisis de ROI de Ofertas</h4>
-                 <p className="text-sm text-muted-foreground">Revisá el rendimiento de tus campañas lanzadas.</p>
-               </div>
-             </div>
-             <Button variant="outline" className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold">
-                Ver Informe ROI
-             </Button>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-[#C2D8C4]/20 flex items-center justify-center">
+                <TrendingUp className="w-6 h-6 text-[#C2D8C4]" />
+              </div>
+              <div>
+                <h4 className="font-bold text-foreground">Análisis de ROI de Ofertas</h4>
+                <p className="text-sm text-muted-foreground">Revisá el rendimiento de tus campañas lanzadas.</p>
+              </div>
+            </div>
+            <Button variant="outline" className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold">
+              Ver Informe ROI
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -266,7 +264,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
 
       {/* Editor Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-[550px] bg-card border-l-0 overflow-y-auto sm:rounded-l-3xl shadow-[-10px_0_40px_rgba(0,0,0,0.1)]">
+        <SheetContent className="sm:max-w-[550px] bg-card border-l-0 overflow-y-auto sm:rounded-l-3xl shadow-[-10px_0_40px_rgba(0,0,0,0.1)] px-8 pt-8 pb-6">
           <SheetHeader className="pb-8 mb-8 border-b border-border/50">
             <SheetTitle className="text-3xl font-black text-foreground flex items-center gap-2">
               {editingId ? 'Editar' : 'Nuevo'} <span className="text-[#C2D8C4]">{editingType === 'plan' ? 'Plan' : 'Promo'}</span>
@@ -280,11 +278,11 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
             <div className="space-y-8">
               <div className="space-y-2">
                 <Label htmlFor="plan-nombre" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre del Plan</Label>
-                <Input id="plan-nombre" value={planForm.nombre} onChange={e => setPlanForm({...planForm, nombre: e.target.value})} placeholder="Ej: Musculación Total" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all shadow-sm" />
+                <Input id="plan-nombre" value={planForm.nombre} onChange={e => setPlanForm({ ...planForm, nombre: e.target.value })} placeholder="Ej: Musculación Total" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all shadow-sm" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plan-desc" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Descripción</Label>
-                <Textarea id="plan-desc" value={planForm.descripcion} onChange={e => setPlanForm({...planForm, descripcion: e.target.value})} placeholder="Detallá los beneficios del plan..." className="min-h-[120px] rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] p-4 transition-all resize-none shadow-sm" />
+                <Textarea id="plan-desc" value={planForm.descripcion} onChange={e => setPlanForm({ ...planForm, descripcion: e.target.value })} placeholder="Detallá los beneficios del plan..." className="min-h-[120px] rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] p-4 transition-all resize-none shadow-sm" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="plan-precio" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Precio Mensual ($)</Label>
@@ -292,7 +290,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span className="text-muted-foreground font-medium">$</span>
                   </div>
-                  <Input id="plan-precio" type="number" value={planForm.precio} onChange={e => setPlanForm({...planForm, precio: Number(e.target.value)})} className="h-12 pl-8 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
+                  <Input id="plan-precio" type="number" value={planForm.precio} onChange={e => setPlanForm({ ...planForm, precio: Number(e.target.value) })} className="h-12 pl-8 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
                 </div>
               </div>
               <div className="space-y-3 pt-2">
@@ -300,12 +298,12 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {sedesOptions.map(sede => (
                     <label key={sede.id} htmlFor={`sede-${sede.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
-                      <Checkbox 
-                        id={`sede-${sede.id}`} 
+                      <Checkbox
+                        id={`sede-${sede.id}`}
                         checked={planForm.sedes.includes(sede.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) setPlanForm({...planForm, sedes: [...planForm.sedes, sede.id]})
-                          else setPlanForm({...planForm, sedes: planForm.sedes.filter(id => id !== sede.id)})
+                          if (checked) setPlanForm({ ...planForm, sedes: [...planForm.sedes, sede.id] })
+                          else setPlanForm({ ...planForm, sedes: planForm.sedes.filter(id => id !== sede.id) })
                         }}
                         className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
@@ -319,29 +317,29 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
             <div className="space-y-8">
               <div className="space-y-2">
                 <Label htmlFor="promo-codigo" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Código de Promoción</Label>
-                <Input id="promo-codigo" value={promoForm.codigo} onChange={e => setPromoForm({...promoForm, codigo: e.target.value.toUpperCase()})} placeholder="Ej: VERANO2026" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all font-black text-lg uppercase tracking-wider shadow-sm" />
+                <Input id="promo-codigo" value={promoForm.codigo} onChange={e => setPromoForm({ ...promoForm, codigo: e.target.value.toUpperCase() })} placeholder="Ej: VERANO2026" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all font-black text-lg uppercase tracking-wider shadow-sm" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="promo-desc" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Descuento (%)</Label>
                 <div className="relative">
-                  <Input id="promo-desc" type="number" value={promoForm.descuento} onChange={e => setPromoForm({...promoForm, descuento: Number(e.target.value)})} className="h-12 pr-10 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
+                  <Input id="promo-desc" type="number" value={promoForm.descuento} onChange={e => setPromoForm({ ...promoForm, descuento: Number(e.target.value) })} className="h-12 pr-10 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
                     <span className="text-muted-foreground font-medium">%</span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-3 pt-2">
                 <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Sedes Aplicables</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {sedesOptions.map(sede => (
                     <label key={sede.id} htmlFor={`promo-sede-${sede.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
-                      <Checkbox 
-                        id={`promo-sede-${sede.id}`} 
+                      <Checkbox
+                        id={`promo-sede-${sede.id}`}
                         checked={promoForm.sedes.includes(sede.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) setPromoForm({...promoForm, sedes: [...promoForm.sedes, sede.id]})
-                          else setPromoForm({...promoForm, sedes: promoForm.sedes.filter(id => id !== sede.id)})
+                          if (checked) setPromoForm({ ...promoForm, sedes: [...promoForm.sedes, sede.id] })
+                          else setPromoForm({ ...promoForm, sedes: promoForm.sedes.filter(id => id !== sede.id) })
                         }}
                         className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
@@ -356,12 +354,12 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                 <div className="flex flex-col gap-1.5 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {planes.map(plan => (
                     <label key={plan.id} htmlFor={`promo-plan-${plan.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
-                      <Checkbox 
-                        id={`promo-plan-${plan.id}`} 
+                      <Checkbox
+                        id={`promo-plan-${plan.id}`}
                         checked={promoForm.planesCompatibles.includes(plan.id)}
                         onCheckedChange={(checked) => {
-                          if (checked) setPromoForm({...promoForm, planesCompatibles: [...promoForm.planesCompatibles, plan.id]})
-                          else setPromoForm({...promoForm, planesCompatibles: promoForm.planesCompatibles.filter(id => id !== plan.id)})
+                          if (checked) setPromoForm({ ...promoForm, planesCompatibles: [...promoForm.planesCompatibles, plan.id] })
+                          else setPromoForm({ ...promoForm, planesCompatibles: promoForm.planesCompatibles.filter(id => id !== plan.id) })
                         }}
                         className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
