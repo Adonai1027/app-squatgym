@@ -165,34 +165,42 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
       {activeTab === "planes" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-300">
           {planes.map(plan => (
-            <Card key={plan.id} className="border-border bg-card group hover:border-[#C2D8C4]/50 transition-all hover:shadow-lg overflow-hidden flex flex-col">
-              <div className="h-2 bg-[#C2D8C4]/20" />
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl font-black text-foreground">{plan.nombre}</CardTitle>
-                  <Button variant="secondary" size="icon" className="h-9 w-9 text-primary hover:bg-primary hover:text-primary-foreground transition-colors rounded-full bg-primary/10 shadow-sm" onClick={() => handleEditPlan(plan)}>
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
+            <div
+              key={plan.id}
+              className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col group hover:border-[#C2D8C4]/60 transition-all duration-200"
+              style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+            >
+              {/* accent bar */}
+              <div className="h-1.5 bg-[#C2D8C4]/40 group-hover:bg-[#C2D8C4] transition-colors duration-200" />
+              <div className="p-6 flex flex-col flex-1">
+                <div className="flex justify-between items-start mb-3">
+                  <h3 className="text-xl font-black text-foreground">{plan.nombre}</h3>
+                  <button
+                    onClick={() => handleEditPlan(plan)}
+                    className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 hover:bg-[#C2D8C4]/20 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-4 h-4 text-[#C2D8C4]" />
+                  </button>
                 </div>
-                <CardDescription className="line-clamp-2 min-h-[40px]">{plan.descripcion}</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-2 flex-1">
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-foreground">${plan.precio.toLocaleString()}</span>
-                  <span className="text-sm text-muted-foreground">/ mes</span>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{plan.descripcion}</p>
+                <div className="mt-auto">
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-3xl font-black text-foreground">${plan.precio.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">/ mes</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-[#C2D8C4]/10 text-[#C2D8C4] rounded-lg flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      Sede Central
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-[#C2D8C4]/10 text-[#C2D8C4] rounded-lg flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      Sede Norte
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-secondary text-muted-foreground rounded-md flex items-center gap-1">
-                    <Building2 className="w-3 h-3" />
-                    Sede Central
-                  </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-secondary text-muted-foreground rounded-md flex items-center gap-1">
-                    <Building2 className="w-3 h-3" />
-                    Sede Norte
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -216,34 +224,41 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {promociones.map(promo => (
-              <Card key={promo.id} className="border-border bg-card hover:border-primary/50 transition-all flex group overflow-hidden">
-                <div className={`w-24 flex flex-col items-center justify-center ${promo.activa ? 'bg-[#C2D8C4]' : 'bg-muted'}`}>
+              <div
+                key={promo.id}
+                className="rounded-2xl border border-border bg-card overflow-hidden flex group hover:border-[#C2D8C4]/50 transition-all duration-200"
+                style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+              >
+                <div className={`w-24 flex flex-col items-center justify-center flex-shrink-0 ${promo.activa ? 'bg-[#C2D8C4]' : 'bg-muted'}`}>
                   <span className="text-2xl font-black text-[#222222]">{promo.descuentoPorcentaje}%</span>
                   <span className="text-[10px] font-bold text-[#222222] uppercase tracking-tighter">OFF</span>
                 </div>
-                <div className="flex-1 p-6">
+                <div className="flex-1 p-5">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">{promo.activa ? 'Campaña Activa' : 'Finalizada'}</p>
+                      <p className="text-[10px] font-bold text-[#C2D8C4] uppercase tracking-widest mb-1">{promo.activa ? 'Campaña Activa' : 'Finalizada'}</p>
                       <h4 className="text-xl font-bold text-foreground">{promo.codigo}</h4>
-                      <p className="text-sm text-muted-foreground mt-2">Válido para planes seleccionados y pago en efectivo.</p>
+                      <p className="text-sm text-muted-foreground mt-1">Válido para planes seleccionados.</p>
                     </div>
-                    <Button variant="secondary" size="icon" className="h-9 w-9 text-primary hover:bg-primary hover:text-primary-foreground transition-colors rounded-full bg-primary/10 shadow-sm" onClick={() => handleEditPromo(promo)}>
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
+                    <button
+                      onClick={() => handleEditPromo(promo)}
+                      className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 hover:bg-[#C2D8C4]/20 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                    >
+                      <Edit2 className="w-4 h-4 text-[#C2D8C4]" />
+                    </button>
                   </div>
                   <div className="mt-4 pt-4 border-t border-border flex items-center gap-4">
-                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span>Todas las sedes</span>
-                     </div>
-                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>Compatible: Pase Libre</span>
-                     </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Building2 className="w-3.5 h-3.5" />
+                      <span>Todas las sedes</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Compatible: Pase Libre</span>
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
@@ -350,7 +365,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
               <SheetClose asChild>
                 <Button variant="outline" className="flex-1 border-border">Cancelar</Button>
               </SheetClose>
-              <Button onClick={handleSave} className="flex-1 bg-primary text-primary-foreground font-bold">
+              <Button onClick={handleSave} className="flex-1 bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold">
                 <Save className="w-4 h-4 mr-2" />
                 Guardar Cambios
               </Button>

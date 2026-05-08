@@ -283,6 +283,10 @@ export function Dashboard({
             setCurrentView={setCurrentView}
             pagosPendientes={pagosPendientes}
             stockBajo={stockBajo}
+            alumnos={alumnos}
+            recibos={recibos}
+            planes={planes}
+            ventas={ventas}
           />
         )
     }
@@ -709,33 +713,42 @@ function AdminDashboard({
   setCurrentView,
   pagosPendientes,
   stockBajo,
+  alumnos,
+  recibos,
+  planes,
+  ventas,
 }: {
   setCurrentView: (v: View) => void
   pagosPendientes: PagoPendiente[]
   stockBajo: Product[]
+  alumnos: Alumno[]
+  recibos: Recibo[]
+  planes: Plan[]
+  ventas: VentaKiosco[]
 }) {
   const criticos = pagosPendientes.filter((p) => p.diasAtraso >= 14)
   const totalPendiente = pagosPendientes.reduce((s, p) => s + p.monto, 0)
-
   const todoAlDia = totalPendiente === 0 && stockBajo.length === 0 && criticos.length === 0
+
+  const sociosActivos = alumnos.filter(a => a.deuda === 0).length
+  const sociosMorosos = alumnos.filter(a => a.deuda > 0).length
+  const recaudacionMensual = recibos.reduce((s, r) => s + r.monto, 0)
+  const todayStr = new Date().toLocaleDateString("es-AR")
+  const ventasHoy = ventas.filter(v => v.fecha === todayStr).reduce((s, v) => s + v.total, 0)
+  const planMasPopular = planes.length > 0 ? planes[0].nombre : "—"
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Panel Administrativo</h2>
-          <p className="text-muted-foreground mt-1">
-            Gestión de egresos, inventario y operaciones
-          </p>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Panel de Control</h2>
+        <p className="text-muted-foreground mt-1">Vista general del gimnasio</p>
       </div>
 
       {todoAlDia ? (
-        /* ── PANEL DE ÉXITO (todo en orden) ── */
         <div
           className="w-full rounded-2xl border border-[#C2D8C4] p-6 sm:p-10 flex flex-col items-center justify-center gap-4 text-center"
-          style={{ backgroundColor: "rgba(194, 216, 196, 0.12)" }}
+          style={{ backgroundColor: "rgba(194, 216, 196, 0.08)", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
         >
           <div className="w-16 h-16 rounded-full bg-[#C2D8C4]/20 flex items-center justify-center">
             <CheckCircle2 className="w-9 h-9" style={{ color: "#C2D8C4" }} />
@@ -743,7 +756,7 @@ function AdminDashboard({
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-foreground">¡Todo al día!</h3>
             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              No tenés tareas administrativas pendientes. Todos los pagos están saldados y el stock está completo.
+              Sin tareas administrativas pendientes.
             </p>
           </div>
           <Button
@@ -757,184 +770,145 @@ function AdminDashboard({
           </Button>
         </div>
       ) : (
-        /* ── KPIs + ALERTAS (hay cosas pendientes) ── */
-        <>
-          {/* KPI strip — solo muestra tarjetas con valor > 0 en rojo/amarillo */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {totalPendiente > 0 && (
-              <Card className="border-destructive/40 bg-destructive/5">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <TrendingDown className="w-5 h-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Total Pendiente</p>
-                    <p className="text-xl font-bold text-destructive">${totalPendiente.toLocaleString()}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {stockBajo.length > 0 && (
-              <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-[#f59e0b]/10 flex items-center justify-center flex-shrink-0">
-                    <Package className="w-5 h-5 text-[#f59e0b]" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Bajo Mínimo</p>
-                    <p className="text-xl font-bold text-[#f59e0b]">{stockBajo.length} productos</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {criticos.length > 0 && (
-              <Card className="border-destructive/40 bg-destructive/5">
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <Zap className="w-5 h-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Pagos Críticos</p>
-                    <p className="text-xl font-bold text-destructive">{criticos.length}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Alert detail cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Pending payments — solo si hay */}
-            {pagosPendientes.length > 0 && (
-              <Card className="border-destructive/40 bg-destructive/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-destructive text-base">
-                    <AlertOctagon className="w-4 h-4" />
-                    Pagos Pendientes a Proveedores
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {pagosPendientes.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
-                    >
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{p.proveedor.nombre}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}
-                        </p>
-                      </div>
-                      <p className={`font-bold text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"}`}>
-                        ${p.monto.toLocaleString()}
-                      </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {pagosPendientes.length > 0 && (
+            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertOctagon className="w-4 h-4 text-destructive" />
+                <p className="text-sm font-semibold text-destructive uppercase tracking-wider">Pagos Pendientes</p>
+              </div>
+              <div className="space-y-2">
+                {pagosPendientes.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                    <div>
+                      <p className="font-medium text-foreground text-sm">{p.proveedor.nombre}</p>
+                      <p className="text-xs text-muted-foreground">{p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}</p>
                     </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    className="w-full mt-1 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm"
-                    onClick={() => setCurrentView("pagos-proveedores")}
-                  >
-                    Ver y gestionar pagos →
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Low stock — solo si hay */}
-            {stockBajo.length > 0 && (
-              <Card className="border-[#f59e0b]/40 bg-[#f59e0b]/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-[#f59e0b] text-base">
-                    <AlertTriangle className="w-4 h-4" />
-                    Stock Bajo en Kiosco
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {stockBajo.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-card border border-border"
-                    >
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{s.nombre}</p>
-                        <p className="text-xs text-muted-foreground">Mín: {s.minimo} unidades</p>
-                      </div>
-                      <p className="font-bold text-[#f59e0b] text-sm">{s.stock} uds</p>
+                    <p className={`font-bold text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"}`}>${p.monto.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" className="w-full mt-3 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm rounded-xl" onClick={() => setCurrentView("pagos-proveedores")}>
+                Ver y gestionar pagos →
+              </Button>
+            </div>
+          )}
+          {stockBajo.length > 0 && (
+            <div className="rounded-2xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-5" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-4 h-4 text-[#f59e0b]" />
+                <p className="text-sm font-semibold text-[#f59e0b] uppercase tracking-wider">Stock Bajo</p>
+              </div>
+              <div className="space-y-2">
+                {stockBajo.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+                    <div>
+                      <p className="font-medium text-foreground text-sm">{s.nombre}</p>
+                      <p className="text-xs text-muted-foreground">Mín: {s.minimo} unidades</p>
                     </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    className="w-full mt-1 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm"
-                    onClick={() => setCurrentView("kiosco-reposicion")}
-                  >
-                    Generar pedido de reposición →
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </>
+                    <p className="font-bold text-[#f59e0b] text-sm">{s.stock} uds</p>
+                  </div>
+                ))}
+              </div>
+              <Button variant="outline" className="w-full mt-3 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm rounded-xl" onClick={() => setCurrentView("kiosco-reposicion")}>
+                Generar pedido →
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Quick access — siempre visible */}
+      {/* ── BENTO GRID de métricas ── */}
       <div>
-        <p className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-          Accesos Rápidos
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <QuickCard
-            icon={<CreditCard className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Pagos a Proveedores"
-            sub="Registrar egresos y gastos"
-            onClick={() => setCurrentView("pagos-proveedores")}
-          />
-          <QuickCard
-            icon={<ShoppingCart className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Punto de Venta"
-            sub="Iniciar venta en kiosco"
-            onClick={() => setCurrentView("kiosco-pos")}
-          />
-          <QuickCard
-            icon={<ClipboardList className="w-7 h-7 text-[#C2D8C4]" />}
-            title="Control de Stock"
-            sub="Ver inventario completo"
+        <p className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-widest">Métricas del Gimnasio</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Socios Activos — grande */}
+          <div
+            className="col-span-2 rounded-2xl border border-[#C2D8C4]/30 bg-card p-6 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/70 transition-all duration-200"
+            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+            onClick={() => setCurrentView("registro-pagos")}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Socios Activos</p>
+              <div className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-[#C2D8C4]" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-5xl font-black text-foreground">{sociosActivos}</p>
+              <p className="text-sm text-muted-foreground mt-1">de {alumnos.length} total · {sociosMorosos > 0 ? <span className="text-destructive font-semibold">{sociosMorosos} con deuda</span> : <span className="text-[#C2D8C4] font-semibold">sin mora</span>}</p>
+            </div>
+          </div>
+
+          {/* Recaudación total */}
+          <div
+            className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
+            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Recaudado</p>
+              <TrendingUp className="w-4 h-4 text-[#C2D8C4]" />
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black text-foreground">${recaudacionMensual.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">historial total</p>
+            </div>
+          </div>
+
+          {/* Ventas kiosco hoy */}
+          <div
+            className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
+            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+            onClick={() => setCurrentView("kiosco-ventas")}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kiosco Hoy</p>
+              <ShoppingCart className="w-4 h-4 text-[#C2D8C4]" />
+            </div>
+            <div className="mt-3">
+              <p className="text-2xl font-black text-foreground">${ventasHoy.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">ventas del día</p>
+            </div>
+          </div>
+
+          {/* Plan más popular */}
+          <div
+            className="col-span-2 rounded-2xl border border-border bg-card p-5 flex items-center gap-4 cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
+            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+            onClick={() => setCurrentView("consola-configuracion")}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-[#C2D8C4]/10 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-6 h-6 text-[#C2D8C4]" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Plan Destacado</p>
+              <p className="text-lg font-black text-foreground">{planMasPopular}</p>
+              <p className="text-xs text-muted-foreground">{planes.length} planes activos · gestionar →</p>
+            </div>
+          </div>
+
+          {/* Stock health */}
+          <div
+            className="col-span-2 rounded-2xl border border-border bg-card p-5 flex items-center gap-4 cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
+            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
             onClick={() => setCurrentView("kiosco-stock")}
-          />
+          >
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${stockBajo.length > 0 ? "bg-[#f59e0b]/10" : "bg-[#C2D8C4]/10"}`}>
+              <Package className={`w-6 h-6 ${stockBajo.length > 0 ? "text-[#f59e0b]" : "text-[#C2D8C4]"}`} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Estado de Stock</p>
+              {stockBajo.length > 0 ? (
+                <p className="text-lg font-black text-[#f59e0b]">{stockBajo.length} producto{stockBajo.length > 1 ? "s" : ""} bajo mínimo</p>
+              ) : (
+                <p className="text-lg font-black text-[#C2D8C4]">Todo en orden</p>
+              )}
+              <p className="text-xs text-muted-foreground">ver inventario →</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  )
-}
-
-function QuickCard({
-  icon,
-  title,
-  sub,
-  onClick,
-}: {
-  icon: React.ReactNode
-  title: string
-  sub: string
-  onClick: () => void
-}) {
-  return (
-    <Card
-      className="cursor-pointer hover:border-[#C2D8C4]/50 transition-colors border-border bg-card group"
-      onClick={onClick}
-    >
-      <CardContent className="p-5 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-[#C2D8C4]/10 flex items-center justify-center group-hover:bg-[#C2D8C4]/20 transition-colors flex-shrink-0">
-          {icon}
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground text-sm">{title}</h3>
-          <p className="text-xs text-muted-foreground">{sub}</p>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
