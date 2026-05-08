@@ -283,10 +283,6 @@ export function Dashboard({
             setCurrentView={setCurrentView}
             pagosPendientes={pagosPendientes}
             stockBajo={stockBajo}
-            alumnos={alumnos}
-            recibos={recibos}
-            planes={planes}
-            ventas={ventas}
           />
         )
     }
@@ -341,7 +337,12 @@ export function Dashboard({
             <AlumnoNav currentView={currentView} setCurrentView={setCurrentView} />
           )}
           {userRole === "administrador" && (
-            <AdministradorNav currentView={currentView} setCurrentView={setCurrentView} />
+            <AdministradorNav
+              currentView={currentView}
+              setCurrentView={setCurrentView}
+              pagosPendientes={pagosPendientes}
+              stockBajo={productos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
+            />
           )}
         </nav>
 
@@ -630,10 +631,16 @@ function AlumnoNav({
 function AdministradorNav({
   currentView,
   setCurrentView,
+  pagosPendientes,
+  stockBajo,
 }: {
   currentView: View
   setCurrentView: (v: View) => void
+  pagosPendientes: PagoPendiente[]
+  stockBajo: Product[]
 }) {
+  const criticos = pagosPendientes.filter((p) => p.diasAtraso >= 14)
+
   return (
     <>
       <NavButton
@@ -657,13 +664,47 @@ function AdministradorNav({
 
       <div className="pt-3 pb-1 px-2 mt-4">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Reportes y Operaciones
+          Finanzas
         </p>
       </div>
       <NavButton
+        active={currentView === "pagos-proveedores"}
+        icon={<CreditCard className="w-4 h-4" />}
+        label="Pagos a Proveedores"
+        badge={criticos.length > 0 ? criticos.length : undefined}
+        badgeColor="destructive"
+        onClick={() => setCurrentView("pagos-proveedores")}
+      />
+
+      <div className="pt-3 pb-1 px-2 mt-4">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Kiosco
+        </p>
+      </div>
+      <NavButton
+        active={currentView === "kiosco-pos"}
+        icon={<ShoppingCart className="w-4 h-4" />}
+        label="Punto de Venta"
+        onClick={() => setCurrentView("kiosco-pos")}
+      />
+      <NavButton
+        active={currentView === "kiosco-stock"}
+        icon={<Package className="w-4 h-4" />}
+        label="Control de Stock"
+        badge={stockBajo.length > 0 ? stockBajo.length : undefined}
+        badgeColor="warning"
+        onClick={() => setCurrentView("kiosco-stock")}
+      />
+      <NavButton
+        active={currentView === "kiosco-reposicion"}
+        icon={<ClipboardList className="w-4 h-4" />}
+        label="Generar Pedido"
+        onClick={() => setCurrentView("kiosco-reposicion")}
+      />
+      <NavButton
         active={currentView === "kiosco-ventas"}
         icon={<History className="w-4 h-4" />}
-        label="Ventas del Kiosco"
+        label="Ventas del Día"
         onClick={() => setCurrentView("kiosco-ventas")}
       />
     </>
@@ -713,29 +754,14 @@ function AdminDashboard({
   setCurrentView,
   pagosPendientes,
   stockBajo,
-  alumnos,
-  recibos,
-  planes,
-  ventas,
 }: {
   setCurrentView: (v: View) => void
   pagosPendientes: PagoPendiente[]
   stockBajo: Product[]
-  alumnos: Alumno[]
-  recibos: Recibo[]
-  planes: Plan[]
-  ventas: VentaKiosco[]
 }) {
   const criticos = pagosPendientes.filter((p) => p.diasAtraso >= 14)
   const totalPendiente = pagosPendientes.reduce((s, p) => s + p.monto, 0)
   const todoAlDia = totalPendiente === 0 && stockBajo.length === 0 && criticos.length === 0
-
-  const sociosActivos = alumnos.filter(a => a.deuda === 0).length
-  const sociosMorosos = alumnos.filter(a => a.deuda > 0).length
-  const recaudacionMensual = recibos.reduce((s, r) => s + r.monto, 0)
-  const todayStr = new Date().toLocaleDateString("es-AR")
-  const ventasHoy = ventas.filter(v => v.fecha === todayStr).reduce((s, v) => s + v.total, 0)
-  const planMasPopular = planes.length > 0 ? planes[0].nombre : "—"
 
   return (
     <div className="space-y-8">
@@ -756,18 +782,9 @@ function AdminDashboard({
           <div className="space-y-1">
             <h3 className="text-xl font-bold text-foreground">¡Todo al día!</h3>
             <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              Sin tareas administrativas pendientes.
+              Sin tareas administrativas pendientes. No hay más por hacer.
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-2 border-[#C2D8C4]/50 text-[#C2D8C4] hover:bg-[#C2D8C4]/10 gap-2"
-            onClick={() => setCurrentView("pagos-proveedores")}
-          >
-            <History className="w-4 h-4" />
-            Ver historial completo
-          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -817,97 +834,6 @@ function AdminDashboard({
           )}
         </div>
       )}
-
-      {/* ── BENTO GRID de métricas ── */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-widest">Métricas del Gimnasio</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Socios Activos — grande */}
-          <div
-            className="col-span-2 rounded-2xl border border-[#C2D8C4]/30 bg-card p-6 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/70 transition-all duration-200"
-            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-            onClick={() => setCurrentView("registro-pagos")}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Socios Activos</p>
-              <div className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-[#C2D8C4]" />
-              </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-5xl font-black text-foreground">{sociosActivos}</p>
-              <p className="text-sm text-muted-foreground mt-1">de {alumnos.length} total · {sociosMorosos > 0 ? <span className="text-destructive font-semibold">{sociosMorosos} con deuda</span> : <span className="text-[#C2D8C4] font-semibold">sin mora</span>}</p>
-            </div>
-          </div>
-
-          {/* Recaudación total */}
-          <div
-            className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
-            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Recaudado</p>
-              <TrendingUp className="w-4 h-4 text-[#C2D8C4]" />
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black text-foreground">${recaudacionMensual.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">historial total</p>
-            </div>
-          </div>
-
-          {/* Ventas kiosco hoy */}
-          <div
-            className="rounded-2xl border border-border bg-card p-5 flex flex-col justify-between cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
-            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-            onClick={() => setCurrentView("kiosco-ventas")}
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Kiosco Hoy</p>
-              <ShoppingCart className="w-4 h-4 text-[#C2D8C4]" />
-            </div>
-            <div className="mt-3">
-              <p className="text-2xl font-black text-foreground">${ventasHoy.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">ventas del día</p>
-            </div>
-          </div>
-
-          {/* Plan más popular */}
-          <div
-            className="col-span-2 rounded-2xl border border-border bg-card p-5 flex items-center gap-4 cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
-            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-            onClick={() => setCurrentView("consola-configuracion")}
-          >
-            <div className="w-12 h-12 rounded-2xl bg-[#C2D8C4]/10 flex items-center justify-center flex-shrink-0">
-              <BarChart3 className="w-6 h-6 text-[#C2D8C4]" />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Plan Destacado</p>
-              <p className="text-lg font-black text-foreground">{planMasPopular}</p>
-              <p className="text-xs text-muted-foreground">{planes.length} planes activos · gestionar →</p>
-            </div>
-          </div>
-
-          {/* Stock health */}
-          <div
-            className="col-span-2 rounded-2xl border border-border bg-card p-5 flex items-center gap-4 cursor-pointer hover:border-[#C2D8C4]/50 transition-all duration-200"
-            style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-            onClick={() => setCurrentView("kiosco-stock")}
-          >
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${stockBajo.length > 0 ? "bg-[#f59e0b]/10" : "bg-[#C2D8C4]/10"}`}>
-              <Package className={`w-6 h-6 ${stockBajo.length > 0 ? "text-[#f59e0b]" : "text-[#C2D8C4]"}`} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-0.5">Estado de Stock</p>
-              {stockBajo.length > 0 ? (
-                <p className="text-lg font-black text-[#f59e0b]">{stockBajo.length} producto{stockBajo.length > 1 ? "s" : ""} bajo mínimo</p>
-              ) : (
-                <p className="text-lg font-black text-[#C2D8C4]">Todo en orden</p>
-              )}
-              <p className="text-xs text-muted-foreground">ver inventario →</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }

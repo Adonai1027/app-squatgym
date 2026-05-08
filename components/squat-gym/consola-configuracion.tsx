@@ -266,7 +266,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
 
       {/* Editor Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-[500px] bg-card border-l border-border overflow-y-auto">
+        <SheetContent className="sm:max-w-[500px] bg-card border-l-0 overflow-y-auto sm:rounded-l-3xl shadow-[-10px_0_40px_rgba(0,0,0,0.1)]">
           <SheetHeader className="pb-6 border-b border-border mb-6">
             <SheetTitle className="text-2xl font-black">
               {editingId ? 'Editar' : 'Nuevo'} {editingType === 'plan' ? 'Plan' : 'Promoción'}
