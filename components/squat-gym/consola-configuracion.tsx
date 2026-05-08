@@ -374,7 +374,9 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
           <SheetFooter className="mt-12 pt-6 border-t border-border/50">
             <div className="flex gap-4 w-full">
               <SheetClose asChild>
-                <Button variant="outline" className="flex-1 h-12 rounded-xl border-border hover:bg-muted font-semibold text-muted-foreground transition-colors">Cancelar</Button>
+                <Button className="flex-1 h-12 rounded-xl bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition-colors border border-red-200">
+                  Cancelar
+                </Button>
               </SheetClose>
               <Button onClick={handleSave} className="flex-1 h-12 rounded-xl bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-black shadow-[0_4px_14px_0_rgba(194,216,196,0.39)] hover:shadow-[0_6px_20px_rgba(194,216,196,0.23)] hover:-translate-y-0.5 transition-all">
                 <Save className="w-4 h-4 mr-2" />
