@@ -266,35 +266,40 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
 
       {/* Editor Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-[500px] bg-card border-l-0 overflow-y-auto sm:rounded-l-3xl shadow-[-10px_0_40px_rgba(0,0,0,0.1)]">
-          <SheetHeader className="pb-6 border-b border-border mb-6">
-            <SheetTitle className="text-2xl font-black">
-              {editingId ? 'Editar' : 'Nuevo'} {editingType === 'plan' ? 'Plan' : 'Promoción'}
+        <SheetContent className="sm:max-w-[550px] bg-card border-l-0 overflow-y-auto sm:rounded-l-3xl shadow-[-10px_0_40px_rgba(0,0,0,0.1)]">
+          <SheetHeader className="pb-8 mb-8 border-b border-border/50">
+            <SheetTitle className="text-3xl font-black text-foreground flex items-center gap-2">
+              {editingId ? 'Editar' : 'Nuevo'} <span className="text-[#C2D8C4]">{editingType === 'plan' ? 'Plan' : 'Promo'}</span>
             </SheetTitle>
-            <SheetDescription>
-              Completá los datos para {editingId ? 'actualizar' : 'crear'} el {editingType === 'plan' ? 'plan de suscripción' : 'descuento comercial'}.
+            <SheetDescription className="text-sm text-muted-foreground mt-2">
+              Completá los datos para {editingId ? 'actualizar' : 'crear'} el {editingType === 'plan' ? 'plan de suscripción' : 'descuento comercial'} del gimnasio.
             </SheetDescription>
           </SheetHeader>
 
           {editingType === 'plan' ? (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="space-y-2">
-                <Label htmlFor="plan-nombre" className="font-bold">Nombre del Plan</Label>
-                <Input id="plan-nombre" value={planForm.nombre} onChange={e => setPlanForm({...planForm, nombre: e.target.value})} placeholder="Ej: Musculación Total" className="bg-input border-border" />
+                <Label htmlFor="plan-nombre" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Nombre del Plan</Label>
+                <Input id="plan-nombre" value={planForm.nombre} onChange={e => setPlanForm({...planForm, nombre: e.target.value})} placeholder="Ej: Musculación Total" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all shadow-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="plan-desc" className="font-bold">Descripción</Label>
-                <Textarea id="plan-desc" value={planForm.descripcion} onChange={e => setPlanForm({...planForm, descripcion: e.target.value})} placeholder="Detallá los beneficios del plan..." className="bg-input border-border min-h-[100px]" />
+                <Label htmlFor="plan-desc" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Descripción</Label>
+                <Textarea id="plan-desc" value={planForm.descripcion} onChange={e => setPlanForm({...planForm, descripcion: e.target.value})} placeholder="Detallá los beneficios del plan..." className="min-h-[120px] rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] p-4 transition-all resize-none shadow-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="plan-precio" className="font-bold">Precio Mensual ($)</Label>
-                <Input id="plan-precio" type="number" value={planForm.precio} onChange={e => setPlanForm({...planForm, precio: Number(e.target.value)})} className="bg-input border-border" />
+                <Label htmlFor="plan-precio" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Precio Mensual ($)</Label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="text-muted-foreground font-medium">$</span>
+                  </div>
+                  <Input id="plan-precio" type="number" value={planForm.precio} onChange={e => setPlanForm({...planForm, precio: Number(e.target.value)})} className="h-12 pl-8 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
+                </div>
               </div>
-              <div className="space-y-3">
-                <Label className="font-bold">Sedes Aplicables</Label>
-                <div className="grid grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-xl border border-border">
+              <div className="space-y-3 pt-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Sedes Aplicables</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {sedesOptions.map(sede => (
-                    <div key={sede.id} className="flex items-center space-x-2">
+                    <label key={sede.id} htmlFor={`sede-${sede.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
                       <Checkbox 
                         id={`sede-${sede.id}`} 
                         checked={planForm.sedes.includes(sede.id)}
@@ -302,29 +307,35 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                           if (checked) setPlanForm({...planForm, sedes: [...planForm.sedes, sede.id]})
                           else setPlanForm({...planForm, sedes: planForm.sedes.filter(id => id !== sede.id)})
                         }}
+                        className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
-                      <label htmlFor={`sede-${sede.id}`} className="text-sm font-medium leading-none cursor-pointer">{sede.nombre}</label>
-                    </div>
+                      <span className="text-sm font-semibold group-hover:text-foreground transition-colors">{sede.nombre}</span>
+                    </label>
                   ))}
                 </div>
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="space-y-2">
-                <Label htmlFor="promo-codigo" className="font-bold">Código de Promoción</Label>
-                <Input id="promo-codigo" value={promoForm.codigo} onChange={e => setPromoForm({...promoForm, codigo: e.target.value.toUpperCase()})} placeholder="Ej: VERANO2026" className="bg-input border-border" />
+                <Label htmlFor="promo-codigo" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Código de Promoción</Label>
+                <Input id="promo-codigo" value={promoForm.codigo} onChange={e => setPromoForm({...promoForm, codigo: e.target.value.toUpperCase()})} placeholder="Ej: VERANO2026" className="h-12 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] px-4 transition-all font-black text-lg uppercase tracking-wider shadow-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="promo-desc" className="font-bold">Porcentaje de Descuento (%)</Label>
-                <Input id="promo-desc" type="number" value={promoForm.descuento} onChange={e => setPromoForm({...promoForm, descuento: Number(e.target.value)})} className="bg-input border-border" />
+                <Label htmlFor="promo-desc" className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Descuento (%)</Label>
+                <div className="relative">
+                  <Input id="promo-desc" type="number" value={promoForm.descuento} onChange={e => setPromoForm({...promoForm, descuento: Number(e.target.value)})} className="h-12 pr-10 rounded-xl bg-background border-border hover:border-[#C2D8C4]/50 focus:border-[#C2D8C4] focus:ring-1 focus:ring-[#C2D8C4] transition-all text-lg font-bold shadow-sm" />
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <span className="text-muted-foreground font-medium">%</span>
+                  </div>
+                </div>
               </div>
               
-              <div className="space-y-3">
-                <Label className="font-bold">Sedes Aplicables</Label>
-                <div className="grid grid-cols-2 gap-4 bg-secondary/20 p-4 rounded-xl border border-border">
+              <div className="space-y-3 pt-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Sedes Aplicables</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {sedesOptions.map(sede => (
-                    <div key={sede.id} className="flex items-center space-x-2">
+                    <label key={sede.id} htmlFor={`promo-sede-${sede.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
                       <Checkbox 
                         id={`promo-sede-${sede.id}`} 
                         checked={promoForm.sedes.includes(sede.id)}
@@ -332,18 +343,19 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                           if (checked) setPromoForm({...promoForm, sedes: [...promoForm.sedes, sede.id]})
                           else setPromoForm({...promoForm, sedes: promoForm.sedes.filter(id => id !== sede.id)})
                         }}
+                        className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
-                      <label htmlFor={`promo-sede-${sede.id}`} className="text-sm font-medium leading-none cursor-pointer">{sede.nombre}</label>
-                    </div>
+                      <span className="text-sm font-semibold group-hover:text-foreground transition-colors">{sede.nombre}</span>
+                    </label>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="font-bold">Planes Compatibles</Label>
-                <div className="space-y-3 bg-secondary/20 p-4 rounded-xl border border-border">
+              <div className="space-y-3 pt-2">
+                <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Planes Compatibles</Label>
+                <div className="flex flex-col gap-1.5 bg-secondary/10 p-5 rounded-2xl border border-border shadow-inner">
                   {planes.map(plan => (
-                    <div key={plan.id} className="flex items-center space-x-2">
+                    <label key={plan.id} htmlFor={`promo-plan-${plan.id}`} className="flex items-center space-x-3 p-3 rounded-xl border border-transparent hover:border-[#C2D8C4]/30 hover:bg-[#C2D8C4]/5 transition-colors cursor-pointer group">
                       <Checkbox 
                         id={`promo-plan-${plan.id}`} 
                         checked={promoForm.planesCompatibles.includes(plan.id)}
@@ -351,21 +363,22 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                           if (checked) setPromoForm({...promoForm, planesCompatibles: [...promoForm.planesCompatibles, plan.id]})
                           else setPromoForm({...promoForm, planesCompatibles: promoForm.planesCompatibles.filter(id => id !== plan.id)})
                         }}
+                        className="data-[state=checked]:bg-[#C2D8C4] data-[state=checked]:border-[#C2D8C4] text-[#222222]"
                       />
-                      <label htmlFor={`promo-plan-${plan.id}`} className="text-sm font-medium leading-none cursor-pointer">{plan.nombre}</label>
-                    </div>
+                      <span className="text-sm font-semibold group-hover:text-foreground transition-colors">{plan.nombre}</span>
+                    </label>
                   ))}
                 </div>
               </div>
             </div>
           )}
 
-          <SheetFooter className="mt-8 pt-6 border-t border-border">
-            <div className="flex gap-3 w-full">
+          <SheetFooter className="mt-12 pt-6 border-t border-border/50">
+            <div className="flex gap-4 w-full">
               <SheetClose asChild>
-                <Button variant="outline" className="flex-1 border-border">Cancelar</Button>
+                <Button variant="outline" className="flex-1 h-12 rounded-xl border-border hover:bg-muted font-semibold text-muted-foreground transition-colors">Cancelar</Button>
               </SheetClose>
-              <Button onClick={handleSave} className="flex-1 bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold">
+              <Button onClick={handleSave} className="flex-1 h-12 rounded-xl bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-black shadow-[0_4px_14px_0_rgba(194,216,196,0.39)] hover:shadow-[0_6px_20px_rgba(194,216,196,0.23)] hover:-translate-y-0.5 transition-all">
                 <Save className="w-4 h-4 mr-2" />
                 Guardar Cambios
               </Button>
