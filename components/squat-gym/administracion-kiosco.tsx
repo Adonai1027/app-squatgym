@@ -1602,16 +1602,21 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
 
       {/* Last Order Receipt Modal */}
       <Dialog open={showLastOrderReceipt} onOpenChange={setShowLastOrderReceipt}>
-        <DialogContent className="bg-background border-none shadow-none max-w-md p-0" aria-describedby={undefined}>
+        <DialogContent className="bg-transparent border-none shadow-none max-w-md p-0" aria-describedby={undefined}>
+           <div className="flex justify-end mb-2">
+             <Button 
+               variant="outline" 
+               size="icon" 
+               onClick={() => setShowLastOrderReceipt(false)} 
+               className="rounded-full bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive hover:text-white transition-colors w-10 h-10 shadow-sm"
+             >
+                <X className="w-5 h-5" />
+             </Button>
+           </div>
            <DialogHeader className="sr-only">
              <DialogTitle>Comprobante de Reposición</DialogTitle>
            </DialogHeader>
            <div className="bg-white text-gray-800 rounded-lg shadow-2xl overflow-hidden relative">
-              <div className="absolute top-2 right-2">
-                 <Button variant="ghost" size="icon" onClick={() => setShowLastOrderReceipt(false)} className="text-gray-500 hover:text-gray-800">
-                    <X className="w-4 h-4" />
-                 </Button>
-              </div>
               <div className="h-4 bg-[repeating-linear-gradient(90deg,transparent,transparent_10px,#e5e5e5_10px,#e5e5e5_20px)]" />
               <div className="p-6 space-y-4">
                  <div className="text-center border-b border-dashed border-gray-300 pb-4">
