@@ -1472,7 +1472,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
 
       {/* Receipt Modal */}
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="bg-background border-none shadow-none max-w-md p-0" aria-describedby={undefined}>
+        <DialogContent className="bg-background border-none shadow-none max-w-md p-0" aria-describedby={undefined} showCloseButton={false}>
           <DialogHeader className="sr-only">
             <DialogTitle>Recibo de Compra</DialogTitle>
           </DialogHeader>
@@ -1602,7 +1602,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
 
       {/* Last Order Receipt Modal */}
       <Dialog open={showLastOrderReceipt} onOpenChange={setShowLastOrderReceipt}>
-        <DialogContent className="bg-transparent border-none shadow-none max-w-md p-0" aria-describedby={undefined}>
+        <DialogContent className="bg-transparent border-none shadow-none max-w-md p-0" aria-describedby={undefined} showCloseButton={false}>
            <div className="flex justify-end mb-2">
              <Button 
                variant="outline" 
