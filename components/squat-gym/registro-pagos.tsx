@@ -130,6 +130,12 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
                 <span className="font-medium text-success">{receiptData.promo}</span>
               </div>
             )}
+            {receiptData.prorrateo && (
+              <div className="flex justify-between border-b border-border pb-4">
+                <span className="text-muted-foreground">Prorrateo Aplicado</span>
+                <span className="font-medium text-info">Sí</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2">
               <span className="text-lg font-bold text-foreground">Total Pagado</span>
               <span className="text-2xl font-bold text-[#C2D8C4]">${receiptData.total.toLocaleString()}</span>

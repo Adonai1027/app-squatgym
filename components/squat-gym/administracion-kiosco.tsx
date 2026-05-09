@@ -239,6 +239,9 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const [auditoriaProduct, setAuditoriaProduct] = useState<number | "">("")
   const [auditoriaPhysicalCount, setAuditoriaPhysicalCount] = useState<string>("")
 
+  // Last order receipt state
+  const [showLastOrderReceipt, setShowLastOrderReceipt] = useState(false)
+
   const filteredPosProductos = useMemo(() => {
     const q = posSearch.toLowerCase().trim()
     if (!q) return productos
@@ -1079,7 +1082,11 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                <p className="text-sm font-semibold text-foreground capitalize">{globalLastOrder ? globalLastOrder.usuario : userRole}</p>
                <p className="text-xs text-muted-foreground">{globalLastOrder ? `${globalLastOrder.fecha} · ${globalLastOrder.hora}` : "Hoy · Hace un momento"}</p>
                <p className="text-xs text-muted-foreground mt-2">{globalLastOrder ? globalLastOrder.resumen : "Batido Proteico (x10), Agua Mineral (x20)"}</p>
-               <Button variant="link" className="px-0 h-auto text-xs text-[#C2D8C4] mt-2 font-medium">
+               <Button 
+                 variant="link" 
+                 className="px-0 h-auto text-xs text-[#C2D8C4] mt-2 font-medium"
+                 onClick={() => setShowLastOrderReceipt(true)}
+               >
                  Ver comprobante →
                </Button>
             </div>
@@ -1590,6 +1597,59 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Last Order Receipt Modal */}
+      <Dialog open={showLastOrderReceipt} onOpenChange={setShowLastOrderReceipt}>
+        <DialogContent className="bg-background border-none shadow-none max-w-md p-0" aria-describedby={undefined}>
+           <DialogHeader className="sr-only">
+             <DialogTitle>Comprobante de Reposición</DialogTitle>
+           </DialogHeader>
+           <div className="bg-white text-gray-800 rounded-lg shadow-2xl overflow-hidden relative">
+              <div className="absolute top-2 right-2">
+                 <Button variant="ghost" size="icon" onClick={() => setShowLastOrderReceipt(false)} className="text-gray-500 hover:text-gray-800">
+                    <X className="w-4 h-4" />
+                 </Button>
+              </div>
+              <div className="h-4 bg-[repeating-linear-gradient(90deg,transparent,transparent_10px,#e5e5e5_10px,#e5e5e5_20px)]" />
+              <div className="p-6 space-y-4">
+                 <div className="text-center border-b border-dashed border-gray-300 pb-4">
+                    <div className="text-2xl font-bold tracking-tight">SQUATGYM</div>
+                    <div className="text-xs text-gray-500 mt-1">REPOSICIÓN KIOSCO</div>
+                 </div>
+                 <div className="text-center space-y-1">
+                    <div className="text-lg font-semibold">COMPROBANTE</div>
+                    <div className="text-sm text-gray-600 font-mono">#{globalLastOrder ? "PED-" + globalLastOrder.hora.replace(":", "") + "A" : "PED-00001"}</div>
+                    <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+                       <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {globalLastOrder ? globalLastOrder.fecha : "Hoy"}</span>
+                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {globalLastOrder ? globalLastOrder.hora : "Hace un momento"}</span>
+                    </div>
+                 </div>
+                 <div className="border-t border-dashed border-gray-300" />
+                 <div className="space-y-1">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide">Usuario</div>
+                    <div className="font-semibold capitalize">{globalLastOrder ? globalLastOrder.usuario : userRole}</div>
+                 </div>
+                 <div className="border-t border-dashed border-gray-300" />
+                 <div className="space-y-2">
+                    <div className="text-xs text-gray-500 uppercase tracking-wide">Detalle</div>
+                    <div className="space-y-1 text-sm font-medium">
+                       {globalLastOrder ? globalLastOrder.resumen : "Batido Proteico (x10), Agua Mineral (x20)"}
+                    </div>
+                 </div>
+              </div>
+              <div className="h-4 bg-[repeating-linear-gradient(90deg,transparent,transparent_10px,#e5e5e5_10px,#e5e5e5_20px)]" />
+           </div>
+           <div className="flex gap-3">
+             <Button variant="outline" className="flex-1 border-border" onClick={() => { setShowLastOrderReceipt(false); onBack(); }}>
+               Volver al Inicio
+             </Button>
+             <Button className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => showToast("Imprimiendo comprobante...", "info")}>
+               <Printer className="w-4 h-4 mr-2" />
+               Imprimir / Enviar
+             </Button>
+           </div>
         </DialogContent>
       </Dialog>
 

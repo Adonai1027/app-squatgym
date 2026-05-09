@@ -355,7 +355,19 @@ export function GestionPagosProveedores({ onBack, showToast, pagosPendientes, se
                           {pago.horaPago} • {pago.medioPago}
                         </p>
                       </div>
-                      <p className="font-bold text-primary">${pago.monto.toLocaleString()}</p>
+                      <div className="flex flex-col items-end gap-1">
+                        <p className="font-bold text-primary">${pago.monto.toLocaleString()}</p>
+                        <Button 
+                          variant="link" 
+                          className="h-auto p-0 text-xs text-[#C2D8C4]" 
+                          onClick={() => {
+                            setReceipt(pago)
+                            setView("receipt")
+                          }}
+                        >
+                          Ver comprobante
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
