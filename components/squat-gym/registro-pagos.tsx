@@ -35,6 +35,7 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
   const [couponCode, setCouponCode] = useState("")
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null)
   const [prorrateoFactor, setProrrateoFactor] = useState<number | null>(null)
+  const [prorrateoFecha, setProrrateoFecha] = useState<string>(new Date().toISOString().split('T')[0])
 
   const [showReceipt, setShowReceipt] = useState(false)
   const [receiptData, setReceiptData] = useState<any>(null)
@@ -48,6 +49,7 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
       setCouponCode("")
       setAppliedCoupon(null)
       setProrrateoFactor(null)
+      setProrrateoFecha(new Date().toISOString().split('T')[0])
       setShowReceipt(false)
     } else {
       showToast("Alumno no encontrado", "info")
@@ -217,6 +219,10 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
                   <p className="font-medium text-foreground">{selectedAlumno.dni}</p>
                 </div>
                 <div>
+                  <p className="text-sm text-muted-foreground">Fecha de Alta</p>
+                  <p className="font-medium text-foreground">{new Date(selectedAlumno.fechaAlta + "T12:00:00").toLocaleDateString()}</p>
+                </div>
+                <div>
                   <p className="text-sm text-muted-foreground mb-1">Plan a cobrar</p>
                   <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
                     <SelectTrigger className="w-full">
@@ -348,23 +354,61 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
                     <p className="text-sm font-medium">Inscripción fuera de término</p>
                     <p className="text-xs text-muted-foreground">Calcular cobro prorrateado</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (prorrateoFactor !== null) {
-                        setProrrateoFactor(null)
-                        return
-                      }
-                      const dayOfMonth = new Date().getDate();
-                      const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                      const prop = (daysInMonth - dayOfMonth + 1) / daysInMonth;
-                      setProrrateoFactor(prop)
-                      showToast(`Prorrateo calculado: ${dayOfMonth}/${daysInMonth} días restantes`, "info");
-                    }}
-                  >
-                    {prorrateoFactor !== null ? "Quitar Prorrateo" : "Calcular Prorrateo"}
-                  </Button>
+                  <div className="flex flex-col items-end gap-2">
+                    {prorrateoFactor !== null && (
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-[10px] text-[#C2D8C4] hover:text-[#C2D8C4] hover:bg-[#C2D8C4]/10"
+                          onClick={() => {
+                            const alta = selectedAlumno.fechaAlta;
+                            setProrrateoFecha(alta);
+                            const d = new Date(alta + "T12:00:00");
+                            const dayOfMonth = d.getDate();
+                            const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                            const prop = (daysInMonth - dayOfMonth + 1) / daysInMonth;
+                            setProrrateoFactor(prop);
+                          }}
+                        >
+                          Usar Fecha Alta
+                        </Button>
+                        <Input
+                          type="date"
+                          className="w-36 h-8 text-xs"
+                          value={prorrateoFecha}
+                          onChange={(e) => {
+                            const newDate = e.target.value;
+                            setProrrateoFecha(newDate);
+                            // Recalcular factor si ya estaba activo
+                            const d = new Date(newDate + "T12:00:00");
+                            const dayOfMonth = d.getDate();
+                            const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                            const prop = (daysInMonth - dayOfMonth + 1) / daysInMonth;
+                            setProrrateoFactor(prop);
+                          }}
+                        />
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (prorrateoFactor !== null) {
+                          setProrrateoFactor(null)
+                          return
+                        }
+                        const d = new Date(prorrateoFecha + "T12:00:00");
+                        const dayOfMonth = d.getDate();
+                        const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                        const prop = (daysInMonth - dayOfMonth + 1) / daysInMonth;
+                        setProrrateoFactor(prop)
+                        showToast(`Prorrateo calculado: ${dayOfMonth}/${daysInMonth} días restantes`, "info");
+                      }}
+                    >
+                      {prorrateoFactor !== null ? "Quitar Prorrateo" : "Calcular Prorrateo"}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t border-border space-y-2">

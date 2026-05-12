@@ -143,13 +143,13 @@ export const promocionesIniciales: Promocion[] = [
 ]
 
 export const alumnosIniciales: Alumno[] = [
-  { id: "A001", dni: "35123456", nombre: "Martín Palermo", planId: "PL1", deuda: 25000, fechaVencimiento: "2026-05-05" },
-  { id: "A002", dni: "40987654", nombre: "Lionel Messi", planId: "PL2", deuda: 0, fechaVencimiento: "2026-05-20" },
-  { id: "A003", dni: "38111222", nombre: "Emanuel Ginóbili", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-04-30" },
-  { id: "A004", dni: "42333444", nombre: "Luciana Aymar", planId: "PL1", deuda: 0, fechaVencimiento: "2026-06-15" },
-  { id: "A005", dni: "31555666", nombre: "Gabriela Sabatini", planId: "PL2", deuda: 36000, fechaVencimiento: "2026-03-10" },
-  { id: "A006", dni: "39888777", nombre: "Juan Martín del Potro", planId: "PL1", deuda: 0, fechaVencimiento: "2026-05-18" },
-  { id: "A007", dni: "45112233", nombre: "Julián Álvarez", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-05-02" },
+  { id: "A001", dni: "35123456", nombre: "Martín Palermo", planId: "PL1", deuda: 25000, fechaVencimiento: "2026-05-05", fechaAlta: "2025-05-05" },
+  { id: "A002", dni: "40987654", nombre: "Lionel Messi", planId: "PL2", deuda: 0, fechaVencimiento: "2026-05-20", fechaAlta: "2025-05-20" },
+  { id: "A003", dni: "38111222", nombre: "Emanuel Ginóbili", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-04-30", fechaAlta: "2025-04-30" },
+  { id: "A004", dni: "42333444", nombre: "Luciana Aymar", planId: "PL1", deuda: 0, fechaVencimiento: "2026-06-15", fechaAlta: "2025-06-15" },
+  { id: "A005", dni: "31555666", nombre: "Gabriela Sabatini", planId: "PL2", deuda: 36000, fechaVencimiento: "2026-03-10", fechaAlta: "2025-03-10" },
+  { id: "A006", dni: "39888777", nombre: "Juan Martín del Potro", planId: "PL1", deuda: 0, fechaVencimiento: "2026-05-18", fechaAlta: "2025-05-18" },
+  { id: "A007", dni: "45112233", nombre: "Julián Álvarez", planId: "PL3", deuda: 15000, fechaVencimiento: "2026-05-02", fechaAlta: "2025-05-02" },
 ]
 
 export const recibosIniciales: Recibo[] = [

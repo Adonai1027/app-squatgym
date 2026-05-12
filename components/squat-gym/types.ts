@@ -48,6 +48,7 @@ export interface Alumno {
   planId: string
   deuda: number
   fechaVencimiento: string
+  fechaAlta: string
 }
 
 export interface Recibo {
