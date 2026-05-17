@@ -15,10 +15,13 @@ export interface PagoPendiente {
   fechaVencimiento: string
   diasAtraso: number
   factura?: string
+  sedeId?: string
 }
 
 export interface Product {
   id: number
+  catalogId: number      // logical product id (same across branches)
+  sedeId: string         // which branch this stock entry belongs to
   nombre: string
   precio: number
   stock: number

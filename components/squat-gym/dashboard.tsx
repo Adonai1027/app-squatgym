@@ -44,7 +44,7 @@ interface DashboardProps {
   userRole: UserRole
   activeAlumnoIndex: number
   pagosPendientes: PagoPendiente[]
-  setPagosPendientes: (p: PagoPendiente[]) => void
+  setPagosPendientes: React.Dispatch<React.SetStateAction<PagoPendiente[]>>
   productos: Product[]
   setProductos: React.Dispatch<React.SetStateAction<Product[]>>
   alumnos: Alumno[]
@@ -95,15 +95,13 @@ export function Dashboard({
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
   const [alertPanelOpen, setAlertPanelOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  // Encargado is always locked to Sede Central (S001); only admin can switch branches
+  // Encargado and secretaria are always locked to Sede Central (S001); only admin can switch branches
   const [selectedSedeId, setSelectedSedeId] = useState<string>(sedesOptions[0].id)
-  const effectiveSedeId = userRole === "encargado" ? "S001" : selectedSedeId
+  const effectiveSedeId = (userRole === "encargado" || userRole === "secretaria") ? "S001" : selectedSedeId
 
-  const sedeIndex = sedesOptions.findIndex(s => s.id === effectiveSedeId)
-  
-  // Scoped data for the current branch
-  const activePagosPendientes = pagosPendientes.filter((_, i) => i % sedesOptions.length === sedeIndex)
-  const activeProductos = productos.filter((_, i) => i % sedesOptions.length === sedeIndex || i % sedesOptions.length === 0)
+  // Scoped data for the current branch — filter by explicit sedeId field
+  const activePagosPendientes = pagosPendientes.filter(p => p.sedeId === effectiveSedeId || !p.sedeId)
+  const activeProductos = productos.filter(p => p.sedeId === effectiveSedeId)
 
   const setCurrentView = (v: View) => {
     _setCurrentView(v)
@@ -181,12 +179,9 @@ export function Dashboard({
             pagosPendientes={userRole === "encargado" ? activePagosPendientes : pagosPendientes}
             setPagosPendientes={userRole === "encargado"
               ? (updated: PagoPendiente[]) => {
-                  // Merge scoped changes back: replace only the items this branch owns
-                  const updatedIds = new Set(updated.map(p => p.id))
-                  const branchIds = new Set(activePagosPendientes.map(p => p.id))
-                  // Keep all global items not belonging to this branch, plus the updated branch items
-                  setPagosPendientes([
-                    ...pagosPendientes.filter(p => !branchIds.has(p.id)),
+                  // Merge: keep all pagos from OTHER branches, replace this branch's with updated
+                  setPagosPendientes((prev: PagoPendiente[]) => [
+                    ...prev.filter(p => p.sedeId !== effectiveSedeId && p.sedeId != null),
                     ...updated,
                   ])
                 }
@@ -215,6 +210,7 @@ export function Dashboard({
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
             userRole={userRole}
+            sedeId={effectiveSedeId}
           />
         )
       case "kiosco-stock":
@@ -236,6 +232,7 @@ export function Dashboard({
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
             userRole={userRole}
+            sedeId={effectiveSedeId}
           />
         )
       case "kiosco-reposicion":
@@ -258,6 +255,7 @@ export function Dashboard({
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
             userRole={userRole}
+            sedeId={effectiveSedeId}
           />
         )
       case "portal-socio": {
@@ -313,13 +311,14 @@ export function Dashboard({
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
             userRole={userRole}
+            sedeId={effectiveSedeId}
           />
         )
       case "secretaria-dashboard":
         return (
           <SecretariaDashboard 
             setCurrentView={setCurrentView} 
-            productos={productos}
+            productos={activeProductos}
             ventas={ventas}
           />
         )
@@ -373,15 +372,15 @@ export function Dashboard({
             <SecretariaNav
               currentView={currentView}
               setCurrentView={setCurrentView}
-              stockBajo={productos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
+              stockBajo={activeProductos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
             />
           )}
           {userRole === "encargado" && (
             <EncargadoNav
               currentView={currentView}
               setCurrentView={setCurrentView}
-              pagosPendientes={pagosPendientes}
-              stockBajo={productos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
+              pagosPendientes={activePagosPendientes}
+              stockBajo={activeProductos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
             />
           )}
           {userRole === "alumno" && (

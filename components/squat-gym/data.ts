@@ -93,6 +93,7 @@ export const pagosPendientesIniciales: PagoPendiente[] = [
     fechaVencimiento: "2026-04-15",
     diasAtraso: 9,
     factura: "AFIP-2026-001234",
+    sedeId: "S001",
   },
   {
     id: "PPend-002",
@@ -102,6 +103,7 @@ export const pagosPendientesIniciales: PagoPendiente[] = [
     fechaVencimiento: "2026-04-10",
     diasAtraso: 14,
     factura: "AFIP-2026-001235",
+    sedeId: "S002",
   },
   {
     id: "PPend-003",
@@ -110,25 +112,58 @@ export const pagosPendientesIniciales: PagoPendiente[] = [
     monto: 125000,
     fechaVencimiento: "2026-05-01",
     diasAtraso: 0,
+    sedeId: "S001",
   },
 ]
 
 export const registrosPagosIniciales: RegistroPago[] = []
 
-export const productosIniciales: Product[] = [
-  { id: 1, nombre: "Agua Mineral 500ml", precio: 500, stock: 3, minimo: 10, imagen: "💧" },
-  { id: 2, nombre: "Bebida Isotónica", precio: 800, stock: 5, minimo: 12, imagen: "🥤" },
-  { id: 3, nombre: "Barra de Proteína", precio: 1200, stock: 2, minimo: 8, imagen: "🍫" },
-  { id: 4, nombre: "Batido Proteico", precio: 1500, stock: 15, minimo: 10, imagen: "🥛" },
-  { id: 5, nombre: "Banana", precio: 300, stock: 0, minimo: 15, imagen: "🍌" },
-  { id: 6, nombre: "Yogurt Griego", precio: 600, stock: 8, minimo: 6, imagen: "🥣" },
-  { id: 7, nombre: "Café Express", precio: 400, stock: 30, minimo: 20, imagen: "☕" },
-  { id: 8, nombre: "Galletas Integrales", precio: 350, stock: 12, minimo: 10, imagen: "🍪" },
-  { id: 9, nombre: "Toalla Deportiva", precio: 3500, stock: 5, minimo: 5, imagen: "🧻" },
-  { id: 10, nombre: "Venda Elástica", precio: 1800, stock: 10, minimo: 5, imagen: "🩹" },
-  { id: 11, nombre: "Agua Mineral 1L", precio: 800, stock: 20, minimo: 15, imagen: "💧" },
-  { id: 12, nombre: "Pre-Entreno", precio: 2500, stock: 4, minimo: 10, imagen: "⚡" },
+// Catalog of products (common to all branches — prices & names are global)
+const catalogoProductos = [
+  { catalogId: 1,  nombre: "Agua Mineral 500ml",  precio: 500,  minimo: 10, imagen: "💧" },
+  { catalogId: 2,  nombre: "Bebida Isotónica",     precio: 800,  minimo: 12, imagen: "🥤" },
+  { catalogId: 3,  nombre: "Barra de Proteína",    precio: 1200, minimo: 8,  imagen: "🍫" },
+  { catalogId: 4,  nombre: "Batido Proteico",      precio: 1500, minimo: 10, imagen: "🥛" },
+  { catalogId: 5,  nombre: "Banana",               precio: 300,  minimo: 15, imagen: "🍌" },
+  { catalogId: 6,  nombre: "Yogurt Griego",        precio: 600,  minimo: 6,  imagen: "🥣" },
+  { catalogId: 7,  nombre: "Café Express",         precio: 400,  minimo: 20, imagen: "☕" },
+  { catalogId: 8,  nombre: "Galletas Integrales",  precio: 350,  minimo: 10, imagen: "🍪" },
+  { catalogId: 9,  nombre: "Toalla Deportiva",     precio: 3500, minimo: 5,  imagen: "🧻" },
+  { catalogId: 10, nombre: "Venda Elástica",       precio: 1800, minimo: 5,  imagen: "🩹" },
+  { catalogId: 11, nombre: "Agua Mineral 1L",      precio: 800,  minimo: 15, imagen: "💧" },
+  { catalogId: 12, nombre: "Pre-Entreno",          precio: 2500, minimo: 10, imagen: "⚡" },
 ]
+
+// Stock per branch — [S001, S002, S003, S004] for each catalogId
+const stockPorSede: Record<number, [number, number, number, number]> = {
+  1:  [3,  14,  8,  2],   // Agua 500ml
+  2:  [5,   6, 11,  3],   // Bebida Isotónica
+  3:  [2,  10,  1,  7],   // Barra Proteína
+  4:  [15,  4, 12,  9],   // Batido Proteico
+  5:  [0,   8,  0, 20],   // Banana
+  6:  [8,   3, 16,  4],   // Yogurt Griego
+  7:  [30, 22,  5, 18],   // Café Express
+  8:  [12,  0,  9, 11],   // Galletas Integrales
+  9:  [5,   7,  2,  6],   // Toalla Deportiva
+  10: [10,  3, 14,  8],   // Venda Elástica
+  11: [20, 12, 25,  1],   // Agua 1L
+  12: [4,  16,  3, 11],   // Pre-Entreno
+}
+
+const sedeIds = ["S001", "S002", "S003", "S004"]
+
+export const productosIniciales: Product[] = catalogoProductos.flatMap(p =>
+  sedeIds.map((sedeId, sedeIdx) => ({
+    id: p.catalogId * 10 + sedeIdx,   // unique per product + branch
+    catalogId: p.catalogId,
+    sedeId,
+    nombre: p.nombre,
+    precio: p.precio,
+    stock: stockPorSede[p.catalogId][sedeIdx],
+    minimo: p.minimo,
+    imagen: p.imagen,
+  }))
+)
 
 export const planesIniciales: Plan[] = [
   { id: "PL1", nombre: "Pase Libre", precio: 25000, descripcion: "Acceso ilimitado todas las sedes" },

@@ -445,6 +445,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
         monto: estimatedMonto,
         fechaVencimiento: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         diasAtraso: 0,
+        sedeId,
       }
       
       if (setPagosPendientes) {
