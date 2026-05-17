@@ -95,9 +95,11 @@ export function Dashboard({
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
   const [alertPanelOpen, setAlertPanelOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  // Encargado is always locked to Sede Central (S001); only admin can switch branches
   const [selectedSedeId, setSelectedSedeId] = useState<string>(sedesOptions[0].id)
+  const effectiveSedeId = userRole === "encargado" ? "S001" : selectedSedeId
 
-  const sedeIndex = sedesOptions.findIndex(s => s.id === selectedSedeId)
+  const sedeIndex = sedesOptions.findIndex(s => s.id === effectiveSedeId)
   
   // Scoped data for the current branch
   const activePagosPendientes = pagosPendientes.filter((_, i) => i % sedesOptions.length === sedeIndex)
@@ -176,8 +178,20 @@ export function Dashboard({
           <GestionPagosProveedores
             onBack={() => setCurrentView("dashboard")}
             showToast={showToast}
-            pagosPendientes={pagosPendientes}
-            setPagosPendientes={setPagosPendientes}
+            pagosPendientes={userRole === "encargado" ? activePagosPendientes : pagosPendientes}
+            setPagosPendientes={userRole === "encargado"
+              ? (updated: PagoPendiente[]) => {
+                  // Merge scoped changes back: replace only the items this branch owns
+                  const updatedIds = new Set(updated.map(p => p.id))
+                  const branchIds = new Set(activePagosPendientes.map(p => p.id))
+                  // Keep all global items not belonging to this branch, plus the updated branch items
+                  setPagosPendientes([
+                    ...pagosPendientes.filter(p => !branchIds.has(p.id)),
+                    ...updated,
+                  ])
+                }
+              : setPagosPendientes
+            }
             registrosPagos={registrosPagos}
             setRegistrosPagos={setRegistrosPagos}
           />
@@ -317,8 +331,9 @@ export function Dashboard({
             stockBajo={stockBajo}
             productos={activeProductos}
             ventas={ventas}
-            selectedSedeId={selectedSedeId}
+            selectedSedeId={effectiveSedeId}
             setSelectedSedeId={setSelectedSedeId}
+            userRole={userRole}
           />
         )
     }
@@ -793,7 +808,8 @@ function AdminDashboard({
   productos,
   ventas,
   selectedSedeId,
-  setSelectedSedeId
+  setSelectedSedeId,
+  userRole
 }: {
   setCurrentView: (v: View) => void
   pagosPendientes: PagoPendiente[]
@@ -802,6 +818,7 @@ function AdminDashboard({
   ventas?: VentaKiosco[]
   selectedSedeId: string
   setSelectedSedeId: (id: string) => void
+  userRole?: string
 }) {
   const selectedSede = sedesOptions.find(s => s.id === selectedSedeId)
 
@@ -814,23 +831,29 @@ function AdminDashboard({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
         <div>
-          <h2 className="text-3xl font-bold text-foreground">Panel de Administrador</h2>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Estás visualizando la sucursal: <span className="font-semibold text-primary">{selectedSede?.nombre.replace("Sede ", "")}</span>
-          </p>
+          <h2 className="text-3xl font-bold text-foreground">
+            {userRole === "administrador" ? "Panel de Administrador" : "Panel de Control"}
+          </h2>
+          {userRole === "administrador" && (
+            <p className="text-muted-foreground mt-1 text-lg">
+              Estás visualizando la sucursal: <span className="font-semibold text-primary">{selectedSede?.nombre.replace("Sede ", "")}</span>
+            </p>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Seleccionar Sucursal:</span>
-          <select 
-            className="p-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
-            value={selectedSedeId}
-            onChange={(e) => setSelectedSedeId(e.target.value)}
-          >
-            {sedesOptions.map(sede => (
-              <option key={sede.id} value={sede.id}>{sede.nombre}</option>
-            ))}
-          </select>
-        </div>
+        {userRole === "administrador" && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-muted-foreground">Seleccionar Sucursal:</span>
+            <select 
+              className="p-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+              value={selectedSedeId}
+              onChange={(e) => setSelectedSedeId(e.target.value)}
+            >
+              {sedesOptions.map(sede => (
+                <option key={sede.id} value={sede.id}>{sede.nombre}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
