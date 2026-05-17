@@ -134,6 +134,8 @@ export const planesIniciales: Plan[] = [
   { id: "PL1", nombre: "Pase Libre", precio: 25000, descripcion: "Acceso ilimitado todas las sedes" },
   { id: "PL2", nombre: "Musculación", precio: 18000, descripcion: "Acceso solo a sala de musculación" },
   { id: "PL3", nombre: "Clases Grupales", precio: 15000, descripcion: "Acceso a clases de spinning y yoga" },
+  { id: "PL4", nombre: "Kickboxing", precio: 17000, descripcion: "Clases de kickboxing con profesor" },
+  { id: "PL5", nombre: "Zumba", precio: 14000, descripcion: "Clases de zumba de lunes a viernes" },
 ]
 
 export const promocionesIniciales: Promocion[] = [

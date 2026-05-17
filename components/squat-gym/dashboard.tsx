@@ -36,7 +36,8 @@ import { ConsolaConfiguracion } from "./consola-configuracion"
 import { RegistroPagos } from "./registro-pagos"
 import { UserRole } from "./login-screen"
 
-import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco, RegistroPago } from "./types"
+import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco, RegistroPago, Proveedor } from "./types"
+import { sedesOptions, proveedoresIniciales } from "./data"
 
 interface DashboardProps {
   onLogout: () => void
@@ -45,7 +46,7 @@ interface DashboardProps {
   pagosPendientes: PagoPendiente[]
   setPagosPendientes: (p: PagoPendiente[]) => void
   productos: Product[]
-  setProductos: (p: Product[]) => void
+  setProductos: React.Dispatch<React.SetStateAction<Product[]>>
   alumnos: Alumno[]
   setAlumnos: (a: Alumno[]) => void
   planes: Plan[]
@@ -94,6 +95,13 @@ export function Dashboard({
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
   const [alertPanelOpen, setAlertPanelOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [selectedSedeId, setSelectedSedeId] = useState<string>(sedesOptions[0].id)
+
+  const sedeIndex = sedesOptions.findIndex(s => s.id === selectedSedeId)
+  
+  // Scoped data for the current branch
+  const activePagosPendientes = pagosPendientes.filter((_, i) => i % sedesOptions.length === sedeIndex)
+  const activeProductos = productos.filter((_, i) => i % sedesOptions.length === sedeIndex || i % sedesOptions.length === 0)
 
   const setCurrentView = (v: View) => {
     _setCurrentView(v)
@@ -181,8 +189,14 @@ export function Dashboard({
             onBack={() => setCurrentView(backTarget)}
             showToast={showToast}
             initialView="pos"
-            productos={productos}
-            setProductos={setProductos}
+            productos={activeProductos}
+            setProductos={(newProds) => {
+              setProductos(prev => {
+                const map = new Map(prev.map(p => [p.id, p]))
+                ;(newProds as Product[]).forEach(p => map.set(p.id, p))
+                return Array.from(map.values())
+              })
+            }}
             ventas={ventas}
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
@@ -196,8 +210,14 @@ export function Dashboard({
             onBack={() => setCurrentView(backTarget)}
             showToast={showToast}
             initialView="stock"
-            productos={productos}
-            setProductos={setProductos}
+            productos={activeProductos}
+            setProductos={(newProds) => {
+              setProductos(prev => {
+                const map = new Map(prev.map(p => [p.id, p]))
+                ;(newProds as Product[]).forEach(p => map.set(p.id, p))
+                return Array.from(map.values())
+              })
+            }}
             ventas={ventas}
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
@@ -212,8 +232,14 @@ export function Dashboard({
             showToast={showToast}
             initialView="stock"
             openOrderDialogOnMount
-            productos={productos}
-            setProductos={setProductos}
+            productos={activeProductos}
+            setProductos={(newProds) => {
+              setProductos(prev => {
+                const map = new Map(prev.map(p => [p.id, p]))
+                ;(newProds as Product[]).forEach(p => map.set(p.id, p))
+                return Array.from(map.values())
+              })
+            }}
             ventas={ventas}
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
@@ -261,8 +287,14 @@ export function Dashboard({
             onBack={() => setCurrentView(backTarget)}
             showToast={showToast}
             initialView="ventas-diarias"
-            productos={productos}
-            setProductos={setProductos}
+            productos={activeProductos}
+            setProductos={(newProds) => {
+              setProductos(prev => {
+                const map = new Map(prev.map(p => [p.id, p]))
+                ;(newProds as Product[]).forEach(p => map.set(p.id, p))
+                return Array.from(map.values())
+              })
+            }}
             ventas={ventas}
             setVentas={setVentas}
             setPagosPendientes={setPagosPendientes}
@@ -281,8 +313,12 @@ export function Dashboard({
         return (
           <AdminDashboard
             setCurrentView={setCurrentView}
-            pagosPendientes={pagosPendientes}
+            pagosPendientes={activePagosPendientes}
             stockBajo={stockBajo}
+            productos={activeProductos}
+            ventas={ventas}
+            selectedSedeId={selectedSedeId}
+            setSelectedSedeId={setSelectedSedeId}
           />
         )
     }
@@ -340,8 +376,8 @@ export function Dashboard({
             <AdministradorNav
               currentView={currentView}
               setCurrentView={setCurrentView}
-              pagosPendientes={pagosPendientes}
-              stockBajo={productos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
+              pagosPendientes={activePagosPendientes}
+              stockBajo={activeProductos.filter(p => p.stock < p.minimo && !p.pedidoEnCurso)}
             />
           )}
         </nav>
@@ -392,9 +428,9 @@ export function Dashboard({
                 className="relative p-2 rounded-lg hover:bg-secondary/50 transition-colors"
               >
                 <Bell className="w-5 h-5 text-muted-foreground" />
-                {getAlertCount(pagosPendientes, productos, userRole) > 0 && (
+                {getAlertCount(activePagosPendientes, activeProductos, userRole) > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">
-                    {getAlertCount(pagosPendientes, productos, userRole)}
+                    {getAlertCount(activePagosPendientes, activeProductos, userRole)}
                   </span>
                 )}
               </button>
@@ -408,7 +444,7 @@ export function Dashboard({
                     </button>
                   </div>
                   <div className="max-h-72 overflow-y-auto divide-y divide-border">
-                    {userRole !== "secretaria" && pagosPendientes.filter((p) => p.diasAtraso >= 14).map((p) => (
+                    {userRole !== "secretaria" && activePagosPendientes.filter((p) => p.diasAtraso >= 14).map((p) => (
                       <button
                         key={p.id}
                         className="w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors flex gap-3 items-start"
@@ -424,7 +460,7 @@ export function Dashboard({
                         </div>
                       </button>
                     ))}
-                    {productos.filter((p) => p.stock < p.minimo && !p.pedidoEnCurso).map((s) => (
+                    {activeProductos.filter((p) => p.stock < p.minimo && !p.pedidoEnCurso).map((s) => (
                       <button
                         key={s.id}
                         className="w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors flex gap-3 items-start"
@@ -440,7 +476,7 @@ export function Dashboard({
                         </div>
                       </button>
                     ))}
-                    {getAlertCount(pagosPendientes, productos, userRole) === 0 && (
+                    {getAlertCount(activePagosPendientes, activeProductos, userRole) === 0 && (
                       <p className="text-center text-sm text-muted-foreground py-6">
                         Sin alertas activas
                       </p>
@@ -754,86 +790,124 @@ function AdminDashboard({
   setCurrentView,
   pagosPendientes,
   stockBajo,
+  productos,
+  ventas,
+  selectedSedeId,
+  setSelectedSedeId
 }: {
   setCurrentView: (v: View) => void
   pagosPendientes: PagoPendiente[]
   stockBajo: Product[]
+  productos?: Product[]
+  ventas?: VentaKiosco[]
+  selectedSedeId: string
+  setSelectedSedeId: (id: string) => void
 }) {
-  const criticos = pagosPendientes.filter((p) => p.diasAtraso >= 14)
-  const totalPendiente = pagosPendientes.reduce((s, p) => s + p.monto, 0)
-  const todoAlDia = totalPendiente === 0 && stockBajo.length === 0 && criticos.length === 0
+  const selectedSede = sedesOptions.find(s => s.id === selectedSedeId)
+
+  // Use the props directly, as they are already filtered by the parent Dashboard component
+  const branchPagos = pagosPendientes
+  const branchStockBajo = productos?.filter(p => p.stock < p.minimo && !p.pedidoEnCurso) || stockBajo
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Panel de Control</h2>
-        <p className="text-muted-foreground mt-1">Vista general del gimnasio</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground">Panel de Administrador</h2>
+          <p className="text-muted-foreground mt-1 text-lg">
+            Estás visualizando la sucursal: <span className="font-semibold text-primary">{selectedSede?.nombre.replace("Sede ", "")}</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground">Seleccionar Sucursal:</span>
+          <select 
+            className="p-2.5 rounded-xl border border-border bg-background text-foreground text-sm font-medium shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+            value={selectedSedeId}
+            onChange={(e) => setSelectedSedeId(e.target.value)}
+          >
+            {sedesOptions.map(sede => (
+              <option key={sede.id} value={sede.id}>{sede.nombre}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {todoAlDia ? (
-        <div
-          className="w-full rounded-2xl border border-[#C2D8C4] p-6 sm:p-10 flex flex-col items-center justify-center gap-4 text-center"
-          style={{ backgroundColor: "rgba(194, 216, 196, 0.08)", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-        >
-          <div className="w-16 h-16 rounded-full bg-[#C2D8C4]/20 flex items-center justify-center">
-            <CheckCircle2 className="w-9 h-9" style={{ color: "#C2D8C4" }} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Pagos Pendientes Card */}
+        <div className={`rounded-2xl border ${branchPagos.length > 0 ? 'border-destructive/40' : 'border-border'} bg-card p-5 shadow-sm hover:shadow-md transition-all`}>
+          <div className={`flex items-center gap-2 mb-4 p-3 rounded-xl w-fit ${branchPagos.length > 0 ? 'bg-destructive/10' : 'bg-muted'}`}>
+            {branchPagos.length > 0 ? (
+              <AlertOctagon className="w-5 h-5 text-destructive" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
+            )}
+            <p className={`text-sm font-bold uppercase tracking-wider ${branchPagos.length > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>Pagos Pendientes</p>
           </div>
-          <div className="space-y-1">
-            <h3 className="text-xl font-bold text-foreground">¡Todo al día!</h3>
-            <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-              Sin tareas administrativas pendientes. No hay más por hacer.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {pagosPendientes.length > 0 && (
-            <div className="rounded-2xl border border-destructive/40 bg-destructive/5 p-5" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <AlertOctagon className="w-4 h-4 text-destructive" />
-                <p className="text-sm font-semibold text-destructive uppercase tracking-wider">Pagos Pendientes</p>
-              </div>
-              <div className="space-y-2">
-                {pagosPendientes.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
-                    <div>
-                      <p className="font-medium text-foreground text-sm">{p.proveedor.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}</p>
-                    </div>
-                    <p className={`font-bold text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"}`}>${p.monto.toLocaleString()}</p>
+          {branchPagos.length > 0 ? (
+            <div className="space-y-3">
+              {branchPagos.map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-4 rounded-xl bg-background border border-border">
+                  <div>
+                    <p className="font-semibold text-foreground text-sm">{p.proveedor.nombre}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{p.diasAtraso > 0 ? `${p.diasAtraso} días de atraso` : "Al día"}</p>
                   </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-3 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm rounded-xl" onClick={() => setCurrentView("pagos-proveedores")}>
-                Ver y gestionar pagos →
+                  <p className={`font-black text-sm ${p.diasAtraso >= 14 ? "text-destructive" : "text-foreground"}`}>${p.monto.toLocaleString()}</p>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full mt-4 border-destructive/40 text-destructive hover:bg-destructive/10 text-sm font-semibold rounded-xl" onClick={() => setCurrentView("pagos-proveedores")}>
+                Gestionar pagos →
               </Button>
             </div>
+          ) : (
+            <div className="p-8 text-center bg-background rounded-xl border border-border">
+              <CheckCircle2 className="w-8 h-8 text-[#C2D8C4] mx-auto mb-2" />
+              <p className="font-semibold text-foreground">Al día</p>
+              <p className="text-xs text-muted-foreground">No hay pagos pendientes para esta sucursal.</p>
+            </div>
           )}
-          {stockBajo.length > 0 && (
-            <div className="rounded-2xl border border-[#f59e0b]/40 bg-[#f59e0b]/5 p-5" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
-              <div className="flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-4 h-4 text-[#f59e0b]" />
-                <p className="text-sm font-semibold text-[#f59e0b] uppercase tracking-wider">Stock Bajo</p>
-              </div>
-              <div className="space-y-2">
-                {stockBajo.map((s) => (
-                  <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-card border border-border">
+        </div>
+
+        {/* Stock Bajo Card */}
+        <div className={`rounded-2xl border ${branchStockBajo.length > 0 ? 'border-[#f59e0b]/40' : 'border-border'} bg-card p-5 shadow-sm hover:shadow-md transition-all`}>
+          <div className={`flex items-center gap-2 mb-4 p-3 rounded-xl w-fit ${branchStockBajo.length > 0 ? 'bg-[#f59e0b]/10' : 'bg-muted'}`}>
+            {branchStockBajo.length > 0 ? (
+              <AlertTriangle className="w-5 h-5 text-[#f59e0b]" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-muted-foreground" />
+            )}
+            <p className={`text-sm font-bold uppercase tracking-wider ${branchStockBajo.length > 0 ? 'text-[#f59e0b]' : 'text-muted-foreground'}`}>Alertas de Stock</p>
+          </div>
+          {branchStockBajo.length > 0 ? (
+            <div className="space-y-3">
+              {branchStockBajo.map((s) => (
+                <div key={s.id} className="flex items-center justify-between p-4 rounded-xl bg-background border border-border">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{s.imagen}</span>
                     <div>
-                      <p className="font-medium text-foreground text-sm">{s.nombre}</p>
-                      <p className="text-xs text-muted-foreground">Mín: {s.minimo} unidades</p>
+                      <p className="font-semibold text-foreground text-sm">{s.nombre}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Mín: {s.minimo} unidades</p>
                     </div>
-                    <p className="font-bold text-[#f59e0b] text-sm">{s.stock} uds</p>
                   </div>
-                ))}
-              </div>
-              <Button variant="outline" className="w-full mt-3 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm rounded-xl" onClick={() => setCurrentView("kiosco-reposicion")}>
+                  <div className="text-right">
+                    <p className="font-black text-[#f59e0b] text-sm">{s.stock} uds</p>
+                    <p className="text-[10px] text-muted-foreground">En stock</p>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" className="w-full mt-4 border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/10 text-sm font-semibold rounded-xl" onClick={() => setCurrentView("kiosco-reposicion")}>
                 Generar pedido →
               </Button>
             </div>
+          ) : (
+            <div className="p-8 text-center bg-background rounded-xl border border-border">
+              <CheckCircle2 className="w-8 h-8 text-[#C2D8C4] mx-auto mb-2" />
+              <p className="font-semibold text-foreground">Stock óptimo</p>
+              <p className="text-xs text-muted-foreground">Todos los productos sobre el mínimo.</p>
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
