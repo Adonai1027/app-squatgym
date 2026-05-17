@@ -242,6 +242,12 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   // Last order receipt state
   const [showLastOrderReceipt, setShowLastOrderReceipt] = useState(false)
 
+  // Report dialog state
+  const [showReportDialog, setShowReportDialog] = useState(false)
+  const [reportDateFrom, setReportDateFrom] = useState("")
+  const [reportDateTo, setReportDateTo] = useState("")
+  const [reportSedeId, setReportSedeId] = useState(userRole === "administrador" ? "todas" : sedeId)
+
   const filteredPosProductos = useMemo(() => {
     const q = posSearch.toLowerCase().trim()
     if (!q) return productos
@@ -1158,7 +1164,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => showToast("Imprimiendo reporte de inventario...", "info")} 
+                  onClick={() => setShowReportDialog(true)} 
                   className="gap-2 border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10"
                 >
                   <Printer className="w-4 h-4" />
@@ -1966,6 +1972,65 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Confirmar Auditoría
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Imprimir Reporte de Inventario</DialogTitle>
+            <DialogDescription>
+              Seleccione los parámetros para generar el reporte de stock.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Desde</Label>
+                <Input type="date" value={reportDateFrom} onChange={(e) => setReportDateFrom(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Hasta</Label>
+                <Input type="date" value={reportDateTo} onChange={(e) => setReportDateTo(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Sucursal</Label>
+              <Select
+                value={reportSedeId}
+                onValueChange={setReportSedeId}
+                disabled={userRole !== "administrador"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {userRole === "administrador" && (
+                    <SelectItem value="todas">Todas las sucursales</SelectItem>
+                  )}
+                  {sedesOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReportDialog(false)}>Cancelar</Button>
+            <Button 
+              onClick={() => {
+                showToast("Generando reporte...", "success")
+                setShowReportDialog(false)
+              }}
+              className="bg-[#C2D8C4] text-black hover:bg-[#C2D8C4]/80"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              Imprimir Reporte
             </Button>
           </DialogFooter>
         </DialogContent>

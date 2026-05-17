@@ -17,6 +17,21 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Plan, Promocion } from "./types"
 import { sedesOptions } from "./data"
 
@@ -34,6 +49,12 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [editingType, setEditingType] = useState<"plan" | "promo" | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Report dialog state
+  const [showPromoReportDialog, setShowPromoReportDialog] = useState(false)
+  const [reportPromoDateFrom, setReportPromoDateFrom] = useState("")
+  const [reportPromoDateTo, setReportPromoDateTo] = useState("")
+  const [reportPromoSedeId, setReportPromoSedeId] = useState("todas")
 
   // Form states
   const [planForm, setPlanForm] = useState({
@@ -211,12 +232,12 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                 <TrendingUp className="w-6 h-6 text-[#C2D8C4]" />
               </div>
               <div>
-                <h4 className="font-bold text-foreground">Análisis de ROI de Ofertas</h4>
+                <h4 className="font-bold text-foreground">Análisis de Promociones</h4>
                 <p className="text-sm text-muted-foreground">Revisá el rendimiento de tus campañas lanzadas.</p>
               </div>
             </div>
-            <Button variant="outline" className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold">
-              Ver Informe ROI
+            <Button variant="outline" onClick={() => setShowPromoReportDialog(true)} className="border-[#C2D8C4] text-[#C2D8C4] hover:bg-[#C2D8C4]/10 font-bold">
+              Ver Informe de Promociones
             </Button>
           </div>
 
@@ -386,6 +407,63 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Promo Report Dialog */}
+      <Dialog open={showPromoReportDialog} onOpenChange={setShowPromoReportDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Informe de Promociones</DialogTitle>
+            <DialogDescription>
+              Seleccione los parámetros para generar el reporte de rendimiento de promociones.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Desde</Label>
+                <Input type="date" value={reportPromoDateFrom} onChange={(e) => setReportPromoDateFrom(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Hasta</Label>
+                <Input type="date" value={reportPromoDateTo} onChange={(e) => setReportPromoDateTo(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Sucursal</Label>
+              <Select
+                value={reportPromoSedeId}
+                onValueChange={setReportPromoSedeId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las sucursales</SelectItem>
+                  {sedesOptions.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPromoReportDialog(false)}>Cancelar</Button>
+            <Button 
+              onClick={() => {
+                // Here we would typically generate the report.
+                // For now, we'll just close and maybe show a toast if available (we don't have showToast prop here, so just close)
+                setShowPromoReportDialog(false)
+              }}
+              className="bg-[#C2D8C4] text-black hover:bg-[#C2D8C4]/80"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Imprimir Reporte
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
