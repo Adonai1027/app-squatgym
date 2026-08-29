@@ -262,11 +262,13 @@ export function Dashboard({
         const currentUserAlumno = alumnos[activeAlumnoIndex] ?? alumnos[0]
         const currentPlan = planes.find(p => p.id === currentUserAlumno.planId)!
         const studentRecibos = recibos.filter(r => r.alumnoId === currentUserAlumno.id)
+        const studentVentas = ventas.filter(v => v.dniCliente === currentUserAlumno.dni)
         return (
           <PortalSocio
             alumno={currentUserAlumno}
             plan={currentPlan}
             recibos={studentRecibos}
+            comprasKiosco={studentVentas}
             onPagar={(metodo, monto) => handlePagarAlumno(currentUserAlumno.id, monto, metodo)}
           />
         )
@@ -495,6 +497,9 @@ export function Dashboard({
                         Sin alertas activas
                       </p>
                     )}
+                  </div>
+                  <div className="bg-secondary/20 p-3 text-xs text-muted-foreground text-center border-t border-border">
+                    Las alertas se resuelven automáticamente al regularizar pagos o generar pedidos de stock.
                   </div>
                 </div>
               )}

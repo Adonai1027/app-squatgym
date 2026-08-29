@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Search, UserCircle, CreditCard, Tag, Calendar, Receipt, ExternalLink, History } from "lucide-react"
+import { Search, UserCircle, CreditCard, Tag, Calendar, Receipt, ExternalLink, History, Filter } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ interface RegistroPagosProps {
 
 export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, onBack, showToast }: RegistroPagosProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [filter, setFilter] = useState<"todos" | "adeudan" | "vencen">("todos")
   const [selectedAlumno, setSelectedAlumno] = useState<Alumno | null>(null)
   const [selectedPromo, setSelectedPromo] = useState<Promocion | null>(null)
   const [selectedMethod, setSelectedMethod] = useState<"Efectivo" | "Tarjeta" | "Transferencia">("Efectivo")
@@ -43,18 +44,22 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
   const handleSearch = () => {
     const found = alumnos.find(a => a.dni === searchTerm || a.nombre.toLowerCase().includes(searchTerm.toLowerCase()))
     if (found) {
-      setSelectedAlumno(found)
-      setSelectedPlanId(found.planId)
-      setSelectedPromo(null)
-      setCouponCode("")
-      setAppliedCoupon(null)
-      setProrrateoFactor(null)
-      setProrrateoFecha(new Date().toISOString().split('T')[0])
-      setShowReceipt(false)
+      handleSelectAlumno(found)
     } else {
       showToast("Alumno no encontrado", "info")
       setSelectedAlumno(null)
     }
+  }
+
+  const handleSelectAlumno = (alumno: Alumno) => {
+    setSelectedAlumno(alumno)
+    setSelectedPlanId(alumno.planId)
+    setSelectedPromo(null)
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setProrrateoFactor(null)
+    setProrrateoFecha(new Date().toISOString().split('T')[0])
+    setShowReceipt(false)
   }
 
   const handlePagar = () => {
@@ -97,8 +102,8 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
     return (
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" onClick={() => { setShowReceipt(false); setSelectedAlumno(null); setSearchTerm("") }}>
-            ← Nuevo Pago
+          <Button variant="outline" onClick={() => { setShowReceipt(false); }}>
+            ← Volver al estado de cuenta
           </Button>
           <h2 className="text-xl font-bold">Comprobante Emitido</h2>
         </div>
@@ -165,7 +170,7 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5" />
           <Input
@@ -180,6 +185,78 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
           Buscar
         </Button>
       </div>
+
+      {!selectedAlumno && (
+        <Card className="border-border bg-card animate-in fade-in">
+          <CardHeader className="pb-3 border-b border-border flex flex-row items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <UserCircle className="w-5 h-5 text-[#C2D8C4]" />
+              Directorio de Alumnos
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={filter} onValueChange={(v: any) => setFilter(v)}>
+                <SelectTrigger className="w-40 h-8 text-xs">
+                  <SelectValue placeholder="Filtrar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="adeudan">Con Deuda</SelectItem>
+                  <SelectItem value="vencen">Próximos a Vencer (5 días)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border max-h-[400px] overflow-y-auto">
+              {(() => {
+                let filtered = alumnos;
+                const now = new Date().getTime();
+                
+                if (filter === "adeudan") {
+                  filtered = filtered.filter(a => a.deuda > 0 || (new Date(a.fechaVencimiento).getTime() - now) < 0);
+                } else if (filter === "vencen") {
+                  filtered = filtered.filter(a => {
+                    const dias = (new Date(a.fechaVencimiento).getTime() - now) / (1000 * 3600 * 24);
+                    return dias >= 0 && dias <= 5;
+                  });
+                }
+                
+                if (filtered.length === 0) {
+                  return <div className="p-8 text-center text-muted-foreground">No hay alumnos que coincidan con el filtro.</div>
+                }
+
+                return filtered.map(a => {
+                  const isVencido = (new Date(a.fechaVencimiento).getTime() - now) < 0;
+                  const adeuda = a.deuda > 0 || isVencido;
+                  return (
+                    <div key={a.id} className="p-4 flex items-center justify-between hover:bg-secondary/20 transition-colors cursor-pointer" onClick={() => handleSelectAlumno(a)}>
+                      <div>
+                        <p className="font-bold text-foreground">{a.nombre}</p>
+                        <p className="text-xs text-muted-foreground">DNI: {a.dni} · Vencimiento: {new Date(a.fechaVencimiento).toLocaleDateString()}</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {adeuda ? (
+                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-destructive/10 text-destructive">
+                             Deuda Pendiente
+                           </span>
+                        ) : (
+                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-success/10 text-success">
+                             Al Día
+                           </span>
+                        )}
+                        <Button variant="outline" size="sm" className="h-8">
+                          Seleccionar
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                });
+              })()}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {selectedAlumno && (() => {
         const plan = planes.find(p => p.id === selectedPlanId)
@@ -299,7 +376,14 @@ export function RegistroPagos({ alumnos, planes, promociones, recibos, onPagar, 
                           }`}
                       >
                         <span className="font-medium">{promo.codigo}</span>
-                        <span className="text-xs bg-background px-1.5 py-0.5 rounded">-{promo.descuentoPorcentaje}%</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-background px-1.5 py-0.5 rounded">-{promo.descuentoPorcentaje}%</span>
+                          {selectedPromo?.id === promo.id ? (
+                            <span className="text-xs font-bold uppercase tracking-wider">Aplicada</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground uppercase tracking-wider">Aplicar</span>
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>

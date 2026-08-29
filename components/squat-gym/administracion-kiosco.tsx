@@ -625,7 +625,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
               </CardContent>
             </Card>
 
-            {userRole !== "secretaria" && (
+            {true && (
               <Card
                 className="cursor-pointer hover:border-primary/50 transition-colors border-border bg-card group"
                 onClick={() => setView("ventas-diarias")}
@@ -1453,6 +1453,13 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                 </div>
               </RadioGroup>
             </div>
+
+            {paymentMethod === "qr" && (
+              <div className="p-4 rounded-xl bg-secondary/50 border border-border flex flex-col items-center justify-center animate-in fade-in zoom-in-95">
+                <QrCode className="w-24 h-24 text-primary opacity-80 mb-2" />
+                <p className="text-muted-foreground text-center text-sm">Pídale al cliente que escanee este código</p>
+              </div>
+            )}
 
             {/* Total */}
             <div className="p-4 rounded-lg bg-secondary/50 border border-border">

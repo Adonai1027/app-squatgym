@@ -4,16 +4,17 @@ import { useState } from "react"
 import { Wallet, CreditCard, History, QrCode, Building, Receipt, ExternalLink, Edit2, Building2, Layers } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Alumno, Plan, Recibo } from "./types"
+import { Alumno, Plan, Recibo, VentaKiosco } from "./types"
 
 interface PortalSocioProps {
   alumno: Alumno
   plan: Plan
   recibos: Recibo[]
+  comprasKiosco?: VentaKiosco[]
   onPagar: (metodo: "Efectivo" | "Tarjeta" | "Transferencia" | "QR", monto: number) => void
 }
 
-export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps) {
+export function PortalSocio({ alumno, plan, recibos, comprasKiosco = [], onPagar }: PortalSocioProps) {
   const [showPayment, setShowPayment] = useState(false)
   const [selectedMethod, setSelectedMethod] = useState<"QR" | "Transferencia" | "Tarjeta" | null>(null)
   const [viewingReceipt, setViewingReceipt] = useState<Recibo | null>(null)
@@ -321,6 +322,36 @@ Método de pago: ${viewingReceipt.metodo}
           </CardContent>
         </Card>
       </div>
+
+      {comprasKiosco.length > 0 && (
+        <div>
+          <h3 className="text-lg font-bold text-foreground mb-4">Compras en Kiosco</h3>
+          <Card className="border-border bg-card">
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {comprasKiosco.map((compra) => (
+                  <div key={compra.id} className="p-4 flex items-center justify-between hover:bg-secondary/20 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-[#C2D8C4]/10 flex items-center justify-center">
+                        <span className="text-xl">🥤</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm text-foreground">
+                          {compra.items.map(i => `${i.cantidad}x ${i.nombre}`).join(", ")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{compra.fecha} · {compra.hora} · {compra.medio}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-sm text-foreground">${compra.total.toLocaleString()}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Promociones vigentes */}
       <div className="mt-8">
