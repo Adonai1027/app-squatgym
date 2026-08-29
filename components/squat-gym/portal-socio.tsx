@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Wallet, CreditCard, History, QrCode, Building, Receipt, ExternalLink } from "lucide-react"
+import { Wallet, CreditCard, History, QrCode, Building, Receipt, ExternalLink, Edit2, Building2, Layers } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alumno, Plan, Recibo } from "./types"
