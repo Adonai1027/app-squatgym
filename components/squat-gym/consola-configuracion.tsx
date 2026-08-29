@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, Tag, Plus, Edit2, Save, X, Trash2, TrendingUp, Building2, Layers } from "lucide-react"
+import { Settings, Tag, Plus, Edit2, Save, X, Trash2, TrendingUp, Building2, Layers, Switch } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -259,12 +259,24 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
                       <h4 className="text-xl font-bold text-foreground">{promo.codigo}</h4>
                       <p className="text-sm text-muted-foreground mt-1">Válido para planes seleccionados.</p>
                     </div>
-                    <button
-                      onClick={() => handleEditPromo(promo)}
-                      className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 hover:bg-[#C2D8C4]/20 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
-                    >
-                      <Edit2 className="w-4 h-4 text-[#C2D8C4]" />
-                    </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleEditPromo(promo)}
+                        className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 hover:bg-[#C2D8C4]/20 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                      >
+                        <Edit2 className="w-4 h-4 text-[#C2D8C4]" />
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-[#C2D8C4] uppercase tracking-widest">Estado:</span>
+                        <Switch
+                          checked={promo.activa}
+                          onCheckedChange={(checked) => {
+                            setPromociones(promociones.map(p => p.id === promo.id ? { ...p, activa: checked } : p));
+                          }}
+                          className="data-[state=checked]:bg-[#C2D8C4]"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="mt-4 pt-4 border-t border-border flex items-center gap-4">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -412,9 +424,9 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
       <Dialog open={showPromoReportDialog} onOpenChange={setShowPromoReportDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Informe de Promociones</DialogTitle>
+            <DialogTitle>Informe de Rendimiento de Promociones</DialogTitle>
             <DialogDescription>
-              Seleccione los parámetros para generar el reporte de rendimiento de promociones.
+              Seleccione los parámetros para generar el reporte. Nota: El 'precio' se refiere al precio del plan sin descuento, y el 'total' es el precio después de aplicar el descuento de la promoción.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -450,7 +462,7 @@ export function ConsolaConfiguracion({ planes, setPlanes, promociones, setPromoc
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPromoReportDialog(false)}>Cancelar</Button>
-            <Button 
+            <Button
               onClick={() => {
                 // Here we would typically generate the report.
                 // For now, we'll just close and maybe show a toast if available (we don't have showToast prop here, so just close)

@@ -18,7 +18,36 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
   const [selectedMethod, setSelectedMethod] = useState<"QR" | "Transferencia" | "Tarjeta" | null>(null)
   const [viewingReceipt, setViewingReceipt] = useState<Recibo | null>(null)
 
+  // Mock promotions for demonstration
+  const mockPromociones = [
+    { id: 'PR1', codigo: 'VERANO26', descuentoPorcentaje: 20, activa: true },
+    { id: 'PR2', codigo: 'BIENVENIDA', descuentoPorcentaje: 15, activa: true },
+    { id: 'PR3', codigo: 'DESCONTO', descuentoPorcentaje: 10, activa: false },
+  ];
+
+  const mockPromocionesVigentes = mockPromociones.filter(promo => promo.activa);
+
   const diasParaVencer = Math.floor((new Date(alumno.fechaVencimiento).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+
+  const handleDownloadReceipt = () => {
+    if (!viewingReceipt) return;
+    const receiptText = `
+SquatGym
+Recibo N°: ${viewingReceipt.id}
+Fecha: ${new Date(viewingReceipt.fecha).toLocaleDateString()}
+Alumno: ${alumno.nombre}
+Concepto: ${viewingReceipt.concepto}
+Monto: $${viewingReceipt.monto.toLocaleString()}
+Método de pago: ${viewingReceipt.metodo}
+  `.trim();
+    const blob = new Blob([receiptText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recibo-${viewingReceipt.id}.txt`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   if (viewingReceipt) {
     return (
@@ -58,9 +87,9 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
               <span className="text-2xl font-bold text-[#C2D8C4]">${viewingReceipt.monto.toLocaleString()}</span>
             </div>
 
-            <Button className="w-full mt-6 bg-secondary text-foreground hover:bg-secondary/80">
+            <Button className="w-full mt-6 bg-secondary text-foreground hover:bg-secondary/80" onClick={handleDownloadReceipt}>
               <ExternalLink className="w-4 h-4 mr-2" />
-              Imprimir / Descargar
+              Descargar recibo
             </Button>
           </CardContent>
         </Card>
@@ -114,7 +143,20 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
                       <p className="text-sm text-muted-foreground">Alias: SQUAT.GYM.PAGOS</p>
                     </div>
                   )}
-                  {selectedMethod === "Tarjeta" && <p className="text-muted-foreground text-center">Serás redirigido al portal de MercadoPago</p>}
+                  {selectedMethod === "Tarjeta" && (
+  <div className="flex flex-col items-center">
+    <p className="text-muted-foreground mb-2">Para pagar con tarjeta, serás redirigido a MercadoPago</p>
+    <Button
+      variant="outline"
+      onClick={() => {
+        // Simulate redirect to MercadoPago
+        window.open('https://www.mercadopago.com', '_blank');
+      }}
+    >
+      Pagar con MercadoPago
+    </Button>
+  </div>
+)}
                 </div>
 
                 <Button
@@ -152,38 +194,52 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {alumno.deuda > 0 ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Saldo Pendiente</p>
-                  <p className="text-3xl font-bold text-destructive">${alumno.deuda.toLocaleString()}</p>
+            {(() => {
+              const isVencido = diasParaVencer < 0;
+              const displayDebt = alumno.deuda > 0 ? alumno.deuda : (isVencido ? plan.precio : 0);
+              const showDebt = alumno.deuda > 0 || isVencido;
+
+              return showDebt ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Saldo Pendiente</p>
+                    <p className="text-3xl font-bold text-destructive">${displayDebt.toLocaleString()}</p>
+                  </div>
+                  <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                    {isVencido ? (
+                      <p className="text-sm font-medium text-destructive">
+                        ⚠ Membresía vencida hace {Math.abs(diasParaVencer)} día{diasParaVencer !== -1 ? 's' : ''}
+                      </p>
+                    ) : (
+                      <p className="text-sm font-medium text-destructive">
+                        Vencimiento: {new Date(alumno.fechaVencimiento).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  <Button
+                    className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90"
+                    onClick={() => setShowPayment(true)}
+                  >
+                    Pagar Ahora
+                  </Button>
                 </div>
-                <div className="px-3 py-2 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <p className="text-sm font-medium text-destructive">Vencimiento: {new Date(alumno.fechaVencimiento).toLocaleDateString()}</p>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">Saldo Pendiente</p>
+                    <p className="text-3xl font-bold text-success">$0</p>
+                  </div>
+                  <div className="px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
+                    <p className="text-sm font-medium text-success">
+                      Al día. Próximo vencimiento: {new Date(alumno.fechaVencimiento).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <Button disabled variant="outline" className="w-full opacity-50">
+                    Nada que pagar
+                  </Button>
                 </div>
-                <Button
-                  className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90"
-                  onClick={() => setShowPayment(true)}
-                >
-                  Pagar Ahora
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Saldo Pendiente</p>
-                  <p className="text-3xl font-bold text-success">$0</p>
-                </div>
-                <div className="px-3 py-2 bg-success/10 border border-success/20 rounded-lg">
-                  <p className="text-sm font-medium text-success">
-                    Al día. Próximo vencimiento: {new Date(alumno.fechaVencimiento).toLocaleDateString()}
-                  </p>
-                </div>
-                <Button disabled variant="outline" className="w-full opacity-50">
-                  Nada que pagar
-                </Button>
-              </div>
-            )}
+              );
+            })()}
           </CardContent>
         </Card>
 
@@ -262,6 +318,59 @@ export function PortalSocio({ alumno, plan, recibos, onPagar }: PortalSocioProps
                 </div>
               )}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Promociones vigentes */}
+      <div className="mt-8">
+        <h3 className="text-lg font-bold text-foreground mb-4">Promociones vigentes</h3>
+        <Card className="border-border bg-card">
+          <CardContent className="p-6">
+            {mockPromocionesVigentes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {mockPromocionesVigentes.map(promo => (
+                  <div key={promo.id} className="rounded-2xl border border-border bg-card overflow-hidden flex group hover:border-[#C2D8C4]/50 transition-all duration-200" style={{ boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}>
+                    <div className={`w-24 flex flex-col items-center justify-center flex-shrink-0 ${promo.activa ? 'bg-[#C2D8C4]' : 'bg-muted'}`}>
+                      <span className="text-2xl font-black text-[#222222]">{promo.descuentoPorcentaje}%</span>
+                      <span className="text-[10px] font-bold text-[#222222] uppercase tracking-tighter">OFF</span>
+                    </div>
+                    <div className="flex-1 p-5">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-bold text-[#C2D8C4] uppercase tracking-widest mb-1">{promo.activa ? 'Campaña Activa' : 'Finalizada'}</p>
+                          <h4 className="text-xl font-bold text-foreground">{promo.codigo}</h4>
+                          <p className="text-sm text-muted-foreground mt-1">Descuento del {promo.descuentoPorcentaje}% en planes seleccionados.</p>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // In a real app, we would open a modal to edit the promo.
+                            // For now, we just show an alert.
+                            alert(`Promoción ${promo.codigo} seleccionada`);
+                          }}
+                          className="w-9 h-9 rounded-xl bg-[#C2D8C4]/10 hover:bg-[#C2D8C4]/20 flex items-center justify-center transition-colors cursor-pointer flex-shrink-0"
+                        >
+                          <Edit2 className="w-4 h-4 text-[#C2D8C4]" />
+                        </button>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-border flex items-center gap-4">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Building2 className="w-3.5 h-3.5" />
+                          <span>Todas las sedes</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Layers className="w-3.5 h-3.5" />
+                          <span>Compatible: Todos los planes</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">No hay promociones activas en este momento.</p>
+            )}
           </CardContent>
         </Card>
       </div>
