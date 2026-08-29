@@ -1,13 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Settings, Tag, Plus, Edit2, Save, X, Trash2, TrendingUp, Building2, Layers, Switch } from "lucide-react"
+import { Settings, Tag, Plus, Edit2, Save, X, Trash2, TrendingUp, Building2, Layers } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import {
   Sheet,
   SheetContent,
