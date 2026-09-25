@@ -35,7 +35,7 @@ import { PortalSocio } from "./portal-socio"
 import { ConsolaConfiguracion } from "./consola-configuracion"
 import { RegistroPagos } from "./registro-pagos"
 import { UserRole } from "./login-screen"
-
+import { PlanesYPromos } from "./planes-promos"
 import { Product, PagoPendiente, Alumno, Plan, Promocion, Recibo, VentaKiosco, RegistroPago, Proveedor } from "./types"
 import { sedesOptions, proveedoresIniciales } from "./data"
 
@@ -72,6 +72,7 @@ type View =
   | "consola-configuracion"
   | "registro-pagos"
   | "secretaria-dashboard"
+  | "planes-promos"
 
 function getAlertCount(pagos: PagoPendiente[], productos: Product[], role: UserRole) {
   const criticos = role === "secretaria" ? [] : pagos.filter((p) => p.diasAtraso >= 14)
@@ -92,6 +93,7 @@ export function Dashboard({
   ventas, setVentas, registrosPagos, setRegistrosPagos
 }: DashboardProps) {
   const [currentView, _setCurrentView] = useState<View>(getInitialView(userRole))
+  const [planToPurchase, setPlanToPurchase] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" } | null>(null)
   const [alertPanelOpen, setAlertPanelOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -270,6 +272,21 @@ export function Dashboard({
             recibos={studentRecibos}
             comprasKiosco={studentVentas}
             onPagar={(metodo, monto) => handlePagarAlumno(currentUserAlumno.id, monto, metodo)}
+            // Le pasamos la intención de compra al portal:
+            planToPurchase={planToPurchase}
+            clearPlanToPurchase={() => setPlanToPurchase(null)}
+          />
+        )
+      }
+      case "planes-promos": {
+        const currentUserAlumno = alumnos[activeAlumnoIndex] ?? alumnos[0]
+        return (
+          <PlanesYPromos 
+            currentPlanId={currentUserAlumno.planId}
+            onElegirPlan={(planId) => {
+              setPlanToPurchase(planId); // Guardamos el plan elegido
+              setCurrentView("portal-socio"); // Redirigimos al portal
+            }}
           />
         )
       }
@@ -677,6 +694,13 @@ function AlumnoNav({
         icon={<LayoutDashboard className="w-4 h-4" />}
         label="Mi Portal"
         onClick={() => setCurrentView("portal-socio")}
+      />
+      {/* NUEVO BOTÓN */}
+      <NavButton
+        active={currentView === "planes-promos"}
+        icon={<Zap className="w-4 h-4 text-[#f59e0b]" />}
+        label="Planes y Promos"
+        onClick={() => setCurrentView("planes-promos")}
       />
     </>
   )

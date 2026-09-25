@@ -27,6 +27,7 @@ import {
   ClipboardList,
   TrendingUp,
   User,
+  Settings,
   ArrowUp,
   ArrowDown,
 } from "lucide-react"
@@ -94,7 +95,21 @@ function turnoDesdeHora(hora: string): Turno {
   if (h < 18) return "tarde"
   return "noche"
 }
-
+interface PedidoHistorial {
+  id: string;
+  fecha: string;
+  estado: "pendiente" | "realizado";
+  observacion?: string;
+  tipo: "externo" | "interno";
+  destino: string;
+  stockActualizado?: boolean; // <-- NUEVO: Control para no sumar doble
+  items: {
+    productoId: number;
+    nombre: string;
+    cantidadPedida: number;
+    cantidadEntregada?: number;
+  }[];
+}
 interface AdministracionKioscoProps {
   onBack: () => void
   showToast: (message: string, type?: "success" | "info") => void
@@ -110,7 +125,7 @@ interface AdministracionKioscoProps {
   sede?: string
 }
 
-type KioscoView = "hub" | "pos" | "stock" | "ventas-diarias"
+type KioscoView = "hub" | "pos" | "stock" | "ventas-diarias" | "reposicion"
 
 interface CartItem {
   product: Product
@@ -172,8 +187,37 @@ let globalLastOrder: {
 
 export function AdministracionKiosco({ onBack, showToast, initialView, openOrderDialogOnMount, productos, setProductos, ventas, setVentas, setPagosPendientes, userRole, sedeId = "S001", sede = "Sede Central" }: AdministracionKioscoProps) {
   const hasShortage = productos.some(p => (p.stock < p.minimo && p.stock > 0 && !p.pedidoEnCurso) || (p.stock === 0 && !p.pedidoEnCurso))
-  
-  const [view, setView] = useState<KioscoView>(initialView || "hub")
+  const [configModalOpen, setConfigModalOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [productForm, setProductForm] = useState({ nombre: "", precio: 0, stock: 0, minimo: 0 })
+ const [historialPedidos, setHistorialPedidos] = useState<PedidoHistorial[]>([
+    {
+      id: "PED-102938",
+      fecha: "20/09/2026",
+      estado: "realizado",
+      observacion: "Faltante de Barra de Proteína en el depósito del proveedor.",
+      tipo: "externo",
+      destino: "Nutrición & Energía",
+      items: [
+        { productoId: 1, nombre: "Agua Mineral 500ml", cantidadPedida: 20, cantidadEntregada: 20 },
+        { productoId: 2, nombre: "Barra de Proteína", cantidadPedida: 15, cantidadEntregada: 5 },
+      ]
+    },
+    {
+      id: "PED-102945",
+      fecha: "24/09/2026",
+      estado: "pendiente",
+      tipo: "interno",
+      destino: "Sede Norte",
+      items: [
+        { productoId: 3, nombre: "Pre-Entreno", cantidadPedida: 10 },
+      ]
+    }
+  ])
+  const [viewingPedido, setViewingPedido] = useState<PedidoHistorial | null>(null)
+  const [view, setView] = useState<KioscoView>(
+  initialView === "stock" && openOrderDialogOnMount ? "reposicion" : (initialView || "hub")
+) 
   const [carrito, setCarrito] = useState<CartItem[]>([])
   const [attemptingOrder, setAttemptingOrder] = useState(openOrderDialogOnMount || false)
   const [showOrderDialog, setShowOrderDialog] = useState((openOrderDialogOnMount && hasShortage) || false)
@@ -214,6 +258,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
 
   // Stock filter/sort states
   const [stockSearch, setStockSearch] = useState("")
+  const [stockFilterState, setStockFilterState] = useState<"todos" | "sin-stock" | "stock-bajo" | "normal">("todos")
   const [stockSortKey, setStockSortKey] = useState<StockSortKey>("nombre")
   const [stockSortAsc, setStockSortAsc] = useState(true)
 
@@ -263,9 +308,20 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     }
   }
 
-  const filteredAndSortedProductos = useMemo(() => {
+const filteredAndSortedProductos = useMemo(() => {
     const q = stockSearch.toLowerCase().trim()
-    const filtered = productos.filter((p) => p.nombre.toLowerCase().includes(q))
+    const filtered = productos.filter((p) => {
+      // 1. Filtro por búsqueda de texto
+      const matchesSearch = p.nombre.toLowerCase().includes(q);
+      if (!matchesSearch) return false;
+      
+      // 2. Filtro por estado de stock
+      if (stockFilterState === "sin-stock") return p.stock === 0;
+      if (stockFilterState === "stock-bajo") return p.stock > 0 && p.stock < p.minimo;
+      if (stockFilterState === "normal") return p.stock >= p.minimo;
+      
+      return true;
+    })
     return [...filtered].sort((a, b) => {
       if (stockSortKey === "nombre") {
         return stockSortAsc
@@ -276,7 +332,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       const vb = b[stockSortKey]
       return stockSortAsc ? (va as number) - (vb as number) : (vb as number) - (va as number)
     })
-  }, [productos, stockSearch, stockSortKey, stockSortAsc])
+  }, [productos, stockSearch, stockSortKey, stockSortAsc, stockFilterState])
 
   const StockSortButton = ({ label, keyName }: { label: string; keyName: StockSortKey }) => {
     const active = stockSortKey === keyName
@@ -526,21 +582,15 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        {!(userRole === "secretaria" && view === "pos") && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => {
-              if (initialView && initialView !== "hub") {
-                onBack()
-              } else {
-                view === "hub" ? onBack() : setView("hub")
-              }
-            }}
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        )}
+        {userRole !== "secretaria" && (
+                  <Button
+                    onClick={() => setView("reposicion")}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    Armar Pedido
+                  </Button>
+                )}
         <div>
           <h2 className="text-2xl font-bold text-foreground">Administración de Kiosco</h2>
           <p className="text-muted-foreground">
@@ -1170,30 +1220,7 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                   <Printer className="w-4 h-4" />
                   Imprimir Reporte
                 </Button>
-                {userRole !== "secretaria" && (
-                  <Button
-                    onClick={() => {
-                      if (selectedProducts.length === 0 && hasShortage) {
-                        const shortageIds = [...outOfStockProducts, ...lowStockProducts].map(p => p.id)
-                        setSelectedProducts(shortageIds)
-                        const initialQuantities: Record<number, number> = {}
-                        shortageIds.forEach(id => {
-                          const p = productos.find(x => x.id === id)
-                          if (p) initialQuantities[id] = p.minimo - p.stock > 0 ? p.minimo - p.stock + 10 : 20
-                        })
-                        setPreventiveQuantities(initialQuantities)
-                      } else if (selectedProducts.length === 0 && !hasShortage) {
-                        showToast("Seleccioná al menos un producto de la tabla.", "info")
-                        return
-                      }
-                      setShowOrderDialog(true)
-                    }}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Truck className="w-4 h-4 mr-2" />
-                    Generar Pedido
-                  </Button>
-                )}
+               
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1207,6 +1234,19 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                     onChange={(e) => setStockSearch(e.target.value)}
                     className="pl-9 text-sm"
                   />
+                </div>
+                <div className="w-[180px]">
+                  <Select value={stockFilterState} onValueChange={(v: any) => setStockFilterState(v)}>
+                    <SelectTrigger className="h-9 text-sm border-border">
+                      <SelectValue placeholder="Estado del stock" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los estados</SelectItem>
+                      <SelectItem value="sin-stock">🔴 Agotados</SelectItem>
+                      <SelectItem value="stock-bajo">🟡 Stock Bajo</SelectItem>
+                      <SelectItem value="normal">🟢 Normal</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <StockSortButton label="Nombre" keyName="nombre" />
@@ -1224,149 +1264,66 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
                 <Table>
                   <TableHeader>
                     <TableRow className="border-border">
-                      {userRole !== "secretaria" && <TableHead className="w-12"></TableHead>}
-                      <TableHead className="text-muted-foreground">Producto</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Precio</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Stock Actual</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Mínimo</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Estado</TableHead>
-                      <TableHead className="text-muted-foreground text-center">Estado de Reposición</TableHead>
-                      {userRole !== "secretaria" && <TableHead className="text-muted-foreground text-center w-32">Reponer (Cant.)</TableHead>}
+                      <TableHead className="text-muted-foreground font-semibold">Producto</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-center">Precio</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-center">Cantidad</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-center">Alarma</TableHead>
+                      <TableHead className="text-muted-foreground font-semibold text-center w-20">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAndSortedProductos.map((producto) => {
                       const isOutOfStock = producto.stock === 0
                       const isLowStock = producto.stock < producto.minimo && producto.stock > 0
+                      
+                      // Colores dinámicos para resaltar toda la fila
+                      const rowColor = isOutOfStock 
+                        ? "bg-destructive/15 hover:bg-destructive/25 border-destructive/20" 
+                        : isLowStock 
+                          ? "bg-[#f59e0b]/15 hover:bg-[#f59e0b]/25 border-[#f59e0b]/20" 
+                          : "hover:bg-secondary/50 border-border"
+
                       return (
                         <TableRow
                           key={producto.id}
-                          className={`border-border cursor-pointer select-none ${isOutOfStock ? "bg-destructive/5" : isLowStock ? "bg-warning/5" : ""} ${userRole !== "secretaria" ? "hover:bg-secondary/50" : ""}`}
-                          onClick={() => {
-                            if (userRole === "secretaria") return
-                            const isSelected = selectedProducts.includes(producto.id)
-                            if (isSelected) {
-                              setSelectedProducts(selectedProducts.filter(id => id !== producto.id))
-                            } else {
-                              setSelectedProducts([...selectedProducts, producto.id])
-                              if (!preventiveQuantities[producto.id]) {
-                                setPreventiveQuantities({...preventiveQuantities, [producto.id]: 20})
-                              }
-                            }
-                          }}
+                          className={`border-b transition-colors ${rowColor}`}
                         >
-                          {userRole !== "secretaria" && (
-                            <TableCell>
-                              <input 
-                                type="checkbox"
-                                checked={selectedProducts.includes(producto.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedProducts([...selectedProducts, producto.id])
-                                    setPreventiveQuantities({...preventiveQuantities, [producto.id]: 20})
-                                  } else {
-                                    setSelectedProducts(selectedProducts.filter(id => id !== producto.id))
-                                  }
-                                }}
-                                className="w-4 h-4 rounded border-border accent-primary"
-                              />
-                            </TableCell>
-                          )}
                           <TableCell>
                             <div className="flex items-center gap-3">
                               <span className="text-2xl">{producto.imagen}</span>
-                              <span className="font-medium text-foreground">{producto.nombre}</span>
+                              <span className="font-bold text-foreground">{producto.nombre}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-center text-foreground">
+                          <TableCell className="text-center font-medium text-foreground">
                             ${producto.precio.toLocaleString()}
                           </TableCell>
                           <TableCell className="text-center">
-                            <span
-                              className={`font-semibold ${isOutOfStock ? "text-destructive" : isLowStock ? "text-[#f59e0b]" : "text-foreground"
-                                }`}
-                            >
+                            <span className={`font-black text-lg ${isOutOfStock ? "text-destructive" : isLowStock ? "text-[#f59e0b]" : "text-foreground"}`}>
                               {producto.stock}
                             </span>
                           </TableCell>
-                          <TableCell className="text-center text-muted-foreground">
+                          <TableCell className="text-center text-muted-foreground font-medium">
                             {producto.minimo}
                           </TableCell>
                           <TableCell className="text-center">
-                            {isOutOfStock ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
-                                <AlertOctagon className="w-3 h-3" />
-                                Agotado
-                              </span>
-                            ) : isLowStock ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-warning/10 text-[#f59e0b]">
-                                <AlertTriangle className="w-3 h-3" />
-                                Bajo mínimo
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                                <Check className="w-3 h-3" />
-                                OK
-                              </span>
-                            )}
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              className="h-8 w-8 hover:bg-black/10 dark:hover:bg-white/10"
+                              onClick={() => {
+                                setEditingProduct(producto)
+                                setProductForm({
+                                  nombre: producto.nombre,
+                                  precio: producto.precio,
+                                  stock: producto.stock,
+                                  minimo: producto.minimo
+                                })
+                                setConfigModalOpen(true)
+                              }}
+                            >
+                              <Settings className="w-4 h-4 text-muted-foreground" />
+                            </Button>
                           </TableCell>
-                          {/* ── Estado de Reposición ─────────────────── */}
-                          <TableCell className="text-center">
-                            {(() => {
-                              const lastQty = globalLastOrder?.productQuantities?.[producto.id]
-                              const manualQty = preventiveQuantities[producto.id]
-                              const isSelected = selectedProducts.includes(producto.id)
-
-                              if (isSelected && isPreventiveOrder && manualQty && lastQty) {
-                                // Suma: base del historial + refuerzo manual
-                                return (
-                                  <span
-                                    title="Cantidad base del sistema + refuerzo manual"
-                                    className="inline-flex items-center gap-1 cursor-help"
-                                  >
-                                    <span className="text-xs text-muted-foreground/60">{lastQty}</span>
-                                    <span className="text-xs text-muted-foreground/60">+</span>
-                                    <span className="text-xs font-bold" style={{ color: "#C2D8C4" }}>{manualQty}</span>
-                                  </span>
-                                )
-                              }
-
-                              if (isSelected && isPreventiveOrder && manualQty) {
-                                // Solo cantidad manual (sin historial previo)
-                                return (
-                                  <span className="inline-flex items-center gap-1">
-                                    <span className="text-xs font-bold" style={{ color: "#C2D8C4" }}>📦 {manualQty}</span>
-                                  </span>
-                                )
-                              }
-
-                              if (lastQty) {
-                                // Badge del historial reciente
-                                return (
-                                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-secondary text-muted-foreground">
-                                    📦 {lastQty}
-                                  </span>
-                                )
-                              }
-
-                              return <span className="text-muted-foreground/40 text-xs">-</span>
-                            })()}
-                          </TableCell>
-                          {userRole !== "secretaria" && (
-                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
-                              {selectedProducts.includes(producto.id) ? (
-                                <Input 
-                                  type="number"
-                                  min="1"
-                                  className="w-16 mx-auto h-8 text-center bg-input border-border"
-                                  value={preventiveQuantities[producto.id] || ""}
-                                  onChange={(e) => setPreventiveQuantities({...preventiveQuantities, [producto.id]: parseInt(e.target.value) || 0})}
-                                />
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                          )}
                         </TableRow>
                       )
                     })}
@@ -1377,7 +1334,270 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
           </Card>
         </div>
       )}
+      {/* ─── Reposición (Armado de Pedidos) ─── */}
+      {view === "reposicion" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4">
+          
+          {/* Columna Izquierda: Catálogo y Carrito */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <Package className="w-5 h-5 text-[#C2D8C4]" />
+                  Catálogo para Reposición
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                
+                {/* Filtros reusados */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar producto..."
+                      value={stockSearch}
+                      onChange={(e) => setStockSearch(e.target.value)}
+                      className="pl-9 text-sm h-9"
+                    />
+                  </div>
+                  <div className="w-[180px]">
+                    <Select value={stockFilterState} onValueChange={(v: any) => setStockFilterState(v)}>
+                      <SelectTrigger className="h-9 text-sm border-border">
+                        <SelectValue placeholder="Estado del stock" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los estados</SelectItem>
+                        <SelectItem value="sin-stock">🔴 Agotados</SelectItem>
+                        <SelectItem value="stock-bajo">🟡 Stock Bajo</SelectItem>
+                        <SelectItem value="normal">🟢 Normal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StockSortButton label="Nombre" keyName="nombre" />
+                    <StockSortButton label="Precio" keyName="precio" />
+                    <StockSortButton label="Stock" keyName="stock" />
+                    <StockSortButton label="Mínimo" keyName="minimo" />
+                  </div>
+                </div>
 
+                {/* Tabla de Selección */}
+                <div className="border border-border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-secondary/50">
+                      <TableRow>
+                        <TableHead className="font-semibold text-muted-foreground">Producto</TableHead>
+                        <TableHead className="text-center font-semibold text-muted-foreground">Stock</TableHead>
+                        <TableHead className="text-center font-semibold text-muted-foreground">Mínimo</TableHead>
+                        <TableHead className="text-center font-semibold text-muted-foreground">Añadir al Pedido</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAndSortedProductos.map(producto => {
+                        const qty = preventiveQuantities[producto.id] || 0;
+                        const isOutOfStock = producto.stock === 0;
+                        const isLowStock = producto.stock > 0 && producto.stock < producto.minimo;
+                        
+                        return (
+                          <TableRow key={producto.id} className={isOutOfStock ? "bg-destructive/5" : isLowStock ? "bg-warning/5" : ""}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <span className="text-2xl">{producto.imagen}</span>
+                                <span className="font-medium text-foreground">{producto.nombre}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center font-bold">{producto.stock}</TableCell>
+                            <TableCell className="text-center text-muted-foreground">{producto.minimo}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <Button 
+                                  size="icon" 
+                                  variant="outline" 
+                                  className="h-8 w-8 border-border flex-shrink-0" 
+                                  onClick={() => setPreventiveQuantities({...preventiveQuantities, [producto.id]: Math.max(0, qty - 1)})}
+                                >
+                                  <Minus className="w-4 h-4" />
+                                </Button>
+                                
+                                {/* NUEVO: Campo de entrada numérico en lugar de span estático */}
+                                <Input 
+                                  type="number"
+                                  min="0"
+                                  className="w-16 h-8 text-center font-bold text-lg border-border px-1"
+                                  value={qty || ""}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value);
+                                    setPreventiveQuantities({
+                                      ...preventiveQuantities, 
+                                      [producto.id]: isNaN(val) ? 0 : Math.max(0, val)
+                                    });
+                                  }}
+                                />
+
+                                <Button 
+                                  size="icon" 
+                                  variant="outline" 
+                                  className="h-8 w-8 border-border flex-shrink-0" 
+                                  onClick={() => setPreventiveQuantities({...preventiveQuantities, [producto.id]: qty + 1})}
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Columna Derecha: Resumen del Pedido e Historial */}
+          <div className="space-y-6">
+            
+            {/* Resumen (Carrito) */}
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ShoppingCart className="w-5 h-5 text-primary" />
+                  Armando Pedido
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                {Object.entries(preventiveQuantities).filter(([_, qty]) => qty > 0).length === 0 ? (
+                  <p className="text-muted-foreground text-sm text-center py-6 border border-dashed border-border rounded-lg">
+                    Agrega productos de la lista para armar el pedido.
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                      {Object.entries(preventiveQuantities)
+                        .filter(([_, qty]) => qty > 0)
+                        .map(([id, qty]) => {
+                          const p = productos.find(x => x.id === Number(id));
+                          if (!p) return null;
+                          return (
+                            <div key={id} className="flex justify-between items-center text-sm border-b border-border pb-2 last:border-0">
+                              <span className="truncate flex-1 text-foreground font-medium">{p.nombre}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="font-bold text-[#C2D8C4] text-base">x{qty}</span>
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => setPreventiveQuantities({...preventiveQuantities, [id]: 0})}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                    
+                    <div className="space-y-3 pt-4 border-t border-border">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Destino del Pedido</Label>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant={orderType === "externo" ? "default" : "outline"} 
+                          className={`flex-1 text-xs h-8 font-semibold ${orderType === "externo" ? "bg-primary text-primary-foreground" : "text-muted-foreground border-border"}`}
+                          onClick={() => setOrderType("externo")}
+                        >
+                          Proveedor
+                        </Button>
+                        <Button 
+                          variant={orderType === "interno" ? "default" : "outline"} 
+                          className={`flex-1 text-xs h-8 font-semibold ${orderType === "interno" ? "bg-primary text-primary-foreground" : "text-muted-foreground border-border"}`}
+                          onClick={() => setOrderType("interno")}
+                        >
+                          Sede Interna
+                        </Button>
+                      </div>
+                      
+                      {orderType === "externo" ? (
+                        <Select value={orderDetails.proveedor} onValueChange={(v) => setOrderDetails({...orderDetails, proveedor: v})}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Elegir Proveedor..." /></SelectTrigger>
+                          <SelectContent>
+                            {proveedoresOptions.map(p => <SelectItem key={p.id} value={p.nombre}>{p.nombre}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Select value={orderDetails.sede} onValueChange={(v) => setOrderDetails({...orderDetails, sede: v})}>
+                          <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Elegir Sede..." /></SelectTrigger>
+                          <SelectContent>
+                            {sedesOptions.map(s => <SelectItem key={s.id} value={s.nombre}>{s.nombre}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+
+                    <Button 
+                      className="w-full bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold mt-2 h-10"
+                      disabled={(orderType === "externo" && !orderDetails.proveedor) || (orderType === "interno" && !orderDetails.sede)}
+                      onClick={() => {
+                        const selectedProds = productos.filter(p => preventiveQuantities[p.id] > 0);
+                        const orderNumber = `PED-${Date.now().toString().slice(-6)}`;
+                        const newOrder: PedidoHistorial = {
+                          id: orderNumber,
+                          fecha: new Date().toLocaleDateString("es-AR"),
+                          estado: "pendiente",
+                          tipo: orderType, // Guardamos si es interno o externo
+                          destino: orderType === "externo" ? orderDetails.proveedor : orderDetails.sede, // Guardamos el nombre exacto
+                          items: selectedProds.map(p => ({
+                            productoId: p.id,
+                            nombre: p.nombre,
+                            cantidadPedida: preventiveQuantities[p.id]
+                          }))
+                        };
+                        setHistorialPedidos([newOrder, ...historialPedidos]);
+                        setPreventiveQuantities({});
+                        showToast(`Pedido ${orderNumber} generado exitosamente.`, "success");
+                        // Actualizar bandera de "pedido en curso"
+                        setProductos(
+                          productos.map((p) =>
+                            preventiveQuantities[p.id] > 0 ? { ...p, pedidoEnCurso: true } : p
+                          )
+                        );
+                      }}
+                    >
+                      <Check className="w-4 h-4 mr-2" />
+                      Generar Pedido
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Historial de Pedidos */}
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ClipboardList className="w-5 h-5 text-muted-foreground" />
+                  Pedidos Recientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                   {historialPedidos.map(pedido => (
+                     <div 
+                       key={pedido.id} 
+                       className="p-3 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 cursor-pointer transition-all hover:scale-[1.02]"
+                       onClick={() => setViewingPedido(pedido)}
+                     >
+                       <div className="flex justify-between items-start mb-1">
+                         <span className="font-mono text-sm font-bold text-foreground">{pedido.id}</span>
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${pedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'bg-primary/20 text-primary'}`}>
+                           {pedido.estado}
+                         </span>
+                       </div>
+                       <p className="text-xs text-muted-foreground flex items-center gap-1">
+                         <Calendar className="w-3 h-3" /> {pedido.fecha} • {pedido.items.length} prod(s)
+                       </p>
+                     </div>
+                   ))}
+                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
       {/* Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
         <DialogContent className="bg-card border-border">
@@ -1673,216 +1893,77 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
       </Dialog>
 
       {/* Order Dialog */}
-      <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="bg-card border-border">
+      
+      {/* Order Confirmation Modal */}
+      
+      {/* Modal de Configuración de Producto */}
+      <Dialog open={configModalOpen} onOpenChange={setConfigModalOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Generar Pedido de Reposición</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Configure el tipo de pedido y seleccione los productos a reponer.
+            <DialogTitle className="text-xl">Configurar Producto</DialogTitle>
+            <DialogDescription>
+              Ajusta los detalles y las alertas de stock para este artículo.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-3">
-              <Label className="text-foreground">Tipo de Pedido</Label>
-              <RadioGroup
-                value={orderType}
-                onValueChange={(value) => setOrderType(value as "externo" | "interno")}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-              >
-                <div>
-                  <RadioGroupItem value="externo" id="externo" className="peer sr-only" />
-                  <Label
-                    htmlFor="externo"
-                    className="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer hover:bg-secondary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 border-border"
-                  >
-                    <Truck className="w-8 h-8 mb-2 text-muted-foreground" />
-                    <span className="font-medium text-foreground">Externo</span>
-                    <span className="text-xs text-muted-foreground">Proveedor</span>
-                  </Label>
-                </div>
-                <div>
-                  <RadioGroupItem value="interno" id="interno" className="peer sr-only" />
-                  <Label
-                    htmlFor="interno"
-                    className="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer hover:bg-secondary/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/10 border-border"
-                  >
-                    <Building2 className="w-8 h-8 mb-2 text-muted-foreground" />
-                    <span className="font-medium text-foreground">Interno</span>
-                    <span className="text-xs text-muted-foreground">Otras Sedes</span>
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-3">
-              <Label className="text-foreground">Productos a reponer</Label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {productos.filter(p => selectedProducts.includes(p.id)).map((producto) => (
-                  <div key={producto.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-secondary/30">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">{producto.imagen}</span>
-                      <span className="text-foreground">{producto.nombre}</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`text-sm font-medium ${producto.stock === 0 ? "text-destructive" : "text-[#f59e0b]"}`}>
-                        Stock actual: {producto.stock}
-                      </span>
-                      <span className="text-sm font-bold text-primary">
-                        + {preventiveQuantities[producto.id] || 0} uds
-                      </span>
-                    </div>
-                  </div>
-                ))}
-                {selectedProducts.length === 0 && (
-                  <p className="text-muted-foreground text-center py-4">
-                    No has seleccionado ningún producto.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {orderType === "externo" && (
-              <div className="space-y-2">
-                <Label className="text-foreground">Proveedor</Label>
-                <Select
-                  value={orderDetails.proveedor}
-                  onValueChange={(value) => setOrderDetails({ ...orderDetails, proveedor: value })}
-                >
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Seleccionar proveedor..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {proveedoresOptions.map((prov) => (
-                      <SelectItem key={prov.id} value={prov.nombre}>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-foreground">{prov.nombre}</span>
-                          <span className="text-xs text-muted-foreground">{prov.rubro}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {orderDetails.proveedor && (
-                  <p className="text-xs text-muted-foreground">
-                    {proveedoresOptions.find(p => p.nombre === orderDetails.proveedor)?.rubro}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {orderType === "interno" && (
-              <div className="space-y-2">
-                <Label className="text-foreground">Sede Destino</Label>
-                <Select
-                  value={orderDetails.sede}
-                  onValueChange={(value) => setOrderDetails({ ...orderDetails, sede: value })}
-                >
-                  <SelectTrigger className="bg-input border-border text-foreground">
-                    <SelectValue placeholder="Seleccionar sede..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border">
-                    {sedesOptions.map((sede) => (
-                      <SelectItem key={sede.id} value={sede.nombre}>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-foreground">{sede.nombre}</span>
-                          <span className="text-xs text-muted-foreground">{sede.direccion}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {orderDetails.sede && (
-                  <p className="text-xs text-muted-foreground">
-                    {sedesOptions.find(s => s.nombre === orderDetails.sede)?.direccion}
-                  </p>
-                )}
-              </div>
-            )}
-
+          
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label className="text-foreground">Notas adicionales</Label>
-              <Input
-                placeholder="Observaciones del pedido"
-                value={orderDetails.notas}
-                onChange={(e) => setOrderDetails({ ...orderDetails, notas: e.target.value })}
-                className="bg-input border-border text-foreground"
+              <Label>Nombre del Producto</Label>
+              <Input 
+                value={productForm.nombre} 
+                onChange={(e) => setProductForm({...productForm, nombre: e.target.value})}
               />
             </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowOrderDialog(false)} className="border-border">
-              <X className="w-4 h-4 mr-2" />
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleOrderSubmit}
-              disabled={selectedProducts.length === 0 || (orderType === "externo" && !orderDetails.proveedor) || (orderType === "interno" && !orderDetails.sede)}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Generar Pedido
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Order Confirmation Modal */}
-      <Dialog open={showOrderConfirmation} onOpenChange={setShowOrderConfirmation}>
-        <DialogContent className="bg-card border-border" aria-describedby={undefined}>
-          <DialogHeader>
-            <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Check className="w-8 h-8 text-primary" />
+            <div className="space-y-2">
+              <Label>Precio ($)</Label>
+              <Input 
+                type="number" 
+                value={productForm.precio} 
+                onChange={(e) => setProductForm({...productForm, precio: Number(e.target.value)})}
+              />
             </div>
-            <DialogTitle className="text-foreground text-center text-xl">Pedido Generado</DialogTitle>
-          </DialogHeader>
-          {confirmedOrder && (
-            <div className="space-y-4 py-4">
-              <div className="p-4 rounded-lg bg-secondary/50 border border-border space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">N° de Pedido</span>
-                  <span className="font-mono font-semibold text-primary">{confirmedOrder.numero}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tipo</span>
-                  <span className="text-foreground capitalize">{confirmedOrder.tipo}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">{confirmedOrder.tipo === "externo" ? "Proveedor" : "Sede Destino"}</span>
-                  <span className="text-foreground">{confirmedOrder.destino}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fecha</span>
-                  <span className="text-foreground">{confirmedOrder.fecha}</span>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Productos solicitados</Label>
-                <div className="space-y-2">
-                  {confirmedOrder.productos.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{p.imagen}</span>
-                        <span className="text-foreground">{p.nombre}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">Stock actual: {p.stock}</span>
-                    </div>
-                  ))}
-                </div>
+                <Label>Cantidad (Stock Actual)</Label>
+                <Input 
+                  type="number" 
+                  value={productForm.stock} 
+                  onChange={(e) => setProductForm({...productForm, stock: Number(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Alarma (Stock Mínimo)</Label>
+                <Input 
+                  type="number" 
+                  value={productForm.minimo} 
+                  onChange={(e) => setProductForm({...productForm, minimo: Number(e.target.value)})}
+                />
               </div>
             </div>
-          )}
+          </div>
+
           <DialogFooter>
-            <Button
-              onClick={closeOrderConfirmation}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+            <Button variant="outline" onClick={() => setConfigModalOpen(false)}>Cancelar</Button>
+            <Button 
+              className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90"
+              onClick={() => {
+                if (editingProduct) {
+                  const updatedProducts = productos.map(p => 
+                    p.id === editingProduct.id 
+                      ? { ...p, ...productForm } 
+                      : p
+                  )
+                  setProductos(updatedProducts)
+                  showToast(`Configuración de ${productForm.nombre} guardada.`, "success")
+                  setConfigModalOpen(false)
+                }
+              }}
             >
-              Aceptar
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Dialog Auditoría de Stock */}
       <Dialog open={showAuditoriaDialog} onOpenChange={setShowAuditoriaDialog}>
         <DialogContent className="max-w-md bg-card border-border">
@@ -2038,6 +2119,113 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
             >
               <Printer className="w-4 h-4 mr-2" />
               Imprimir Reporte
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Modal: Detalle de Historial de Pedidos */}
+      <Dialog open={!!viewingPedido} onOpenChange={(open) => !open && setViewingPedido(null)}>
+        <DialogContent className="bg-card border-border sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2 text-foreground">
+              <Package className="w-5 h-5 text-primary" />
+              Detalle del {viewingPedido?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Generado el {viewingPedido?.fecha}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {viewingPedido && (
+            <div className="space-y-4 py-2">
+               <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border">
+                 <div className="flex items-center gap-2">
+                   <span className="text-sm font-medium text-foreground">Estado:</span>
+                   <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider ${viewingPedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'bg-primary/20 text-primary'}`}>
+                     {viewingPedido.estado}
+                   </span>
+                 </div>
+                 <div className="text-right">
+                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold mb-0.5">
+                     {viewingPedido.tipo === "externo" ? "Proveedor Externo" : "Sede Interna"}
+                   </p>
+                   <p className="text-sm font-bold text-foreground">{viewingPedido.destino}</p>
+                 </div>
+               </div>
+
+               {viewingPedido.observacion && (
+                 <div className="p-3 rounded-lg bg-secondary/50 border border-border text-sm text-muted-foreground italic flex gap-2">
+                   <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+                   <span>"{viewingPedido.observacion}"</span>
+                 </div>
+               )}
+               
+               <div className="border border-border rounded-lg overflow-hidden">
+                 <Table>
+                   <TableHeader className="bg-secondary/50">
+                     <TableRow className="border-border">
+                       <TableHead className="font-semibold text-muted-foreground">Producto</TableHead>
+                       <TableHead className="text-center font-semibold text-muted-foreground">Cantidad Pedida</TableHead>
+                       {viewingPedido.estado === "realizado" && <TableHead className="text-center font-semibold text-muted-foreground">Entregada</TableHead>}
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {viewingPedido.items.map((item, idx) => {
+                       const isMissing = viewingPedido.estado === "realizado" && item.cantidadEntregada !== undefined && item.cantidadEntregada < item.cantidadPedida;
+                       
+                       return (
+                         <TableRow key={idx} className={`border-border ${isMissing ? "bg-destructive/10 hover:bg-destructive/15" : ""}`}>
+                           <TableCell className={isMissing ? "text-destructive font-bold" : "text-foreground font-medium"}>
+                             {item.nombre}
+                             {isMissing && <p className="text-[10px] uppercase font-bold text-destructive mt-0.5">Incompleto</p>}
+                           </TableCell>
+                           <TableCell className="text-center text-foreground font-medium">{item.cantidadPedida}</TableCell>
+                           {viewingPedido.estado === "realizado" && (
+                             <TableCell className={`text-center font-black text-lg ${isMissing ? "text-destructive" : "text-primary"}`}>
+                               {item.cantidadEntregada !== undefined ? item.cantidadEntregada : item.cantidadPedida}
+                             </TableCell>
+                           )}
+                         </TableRow>
+                       )
+                     })}
+                   </TableBody>
+                 </Table>
+               </div>
+            </div>
+          )}
+          
+          <DialogFooter className="gap-2 sm:justify-end">
+            {viewingPedido?.estado === "realizado" && !viewingPedido.stockActualizado && (
+              <Button 
+                className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold"
+                onClick={() => {
+                  // 1. Sumamos la mercadería al stock actual de los productos
+                  const updatedProductos = productos.map(p => {
+                    const itemPedidon = viewingPedido.items.find(i => i.productoId === p.id);
+                    if (itemPedidon) {
+                      const qtyToAdd = itemPedidon.cantidadEntregada !== undefined ? itemPedidon.cantidadEntregada : itemPedidon.cantidadPedida;
+                      return { ...p, stock: p.stock + qtyToAdd, pedidoEnCurso: false };
+                    }
+                    return p;
+                  });
+                  setProductos(updatedProductos);
+
+                  // 2. Marcamos este pedido como "ya sumado" en el historial
+                  const updatedHistorial = historialPedidos.map(ped => 
+                    ped.id === viewingPedido.id ? { ...ped, stockActualizado: true } : ped
+                  );
+                  setHistorialPedidos(updatedHistorial);
+                  setViewingPedido({ ...viewingPedido, stockActualizado: true });
+
+                  showToast(`Stock actualizado correctamente con el pedido ${viewingPedido.id}`, "success");
+                }}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Actualizar Stock
+              </Button>
+            )}
+            <Button variant="outline" className="border-border" onClick={() => setViewingPedido(null)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
