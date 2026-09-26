@@ -10,6 +10,7 @@ import {
   Trash2,
   AlertTriangle,
   Truck,
+  Bell,
   Building2,
   Check,
   X,
@@ -98,11 +99,12 @@ function turnoDesdeHora(hora: string): Turno {
 interface PedidoHistorial {
   id: string;
   fecha: string;
-  estado: "pendiente" | "realizado";
+  estado: "pendiente" | "en preparacion" | "realizado" | "rechazado"; // <-- ACTUALIZADO
   observacion?: string;
   tipo: "externo" | "interno";
   destino: string;
-  stockActualizado?: boolean; // <-- NUEVO: Control para no sumar doble
+  origen?: string; // <-- NUEVO: Para saber qué sucursal nos pide
+  stockActualizado?: boolean; 
   items: {
     productoId: number;
     nombre: string;
@@ -192,6 +194,38 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
   const [productForm, setProductForm] = useState({ nombre: "", precio: 0, stock: 0, minimo: 0 })
  const [historialPedidos, setHistorialPedidos] = useState<PedidoHistorial[]>([
     {
+      id: "PED-102948",
+      fecha: new Date().toLocaleDateString("es-AR"),
+      estado: "en preparacion",
+      observacion: "Se envían 15 unidades en lugar de 20 por stock limitado en la sucursal.",
+      tipo: "interno",
+      destino: "Sede Sur",
+      items: [
+        { productoId: 5, nombre: "Batido Proteico", cantidadPedida: 20, cantidadEntregada: 15 },
+      ]
+    },
+    {
+      id: "PED-102945",
+      fecha: "24/09/2026",
+      estado: "rechazado",
+      observacion: "Actualmente sin stock en depósito, por favor solicitar a proveedor externo.",
+      tipo: "interno",
+      destino: "Sede Norte",
+      items: [
+        { productoId: 3, nombre: "Pre-Entreno", cantidadPedida: 10 },
+      ]
+    },
+    {
+      id: "PED-102940",
+      fecha: "22/09/2026",
+      estado: "pendiente",
+      tipo: "externo",
+      destino: "Bebidas Premium SA",
+      items: [
+        { productoId: 4, nombre: "Bebida Isotónica", cantidadPedida: 24 },
+      ]
+    },
+    {
       id: "PED-102938",
       fecha: "20/09/2026",
       estado: "realizado",
@@ -202,19 +236,26 @@ export function AdministracionKiosco({ onBack, showToast, initialView, openOrder
         { productoId: 1, nombre: "Agua Mineral 500ml", cantidadPedida: 20, cantidadEntregada: 20 },
         { productoId: 2, nombre: "Barra de Proteína", cantidadPedida: 15, cantidadEntregada: 5 },
       ]
-    },
-    {
-      id: "PED-102945",
-      fecha: "24/09/2026",
-      estado: "pendiente",
-      tipo: "interno",
-      destino: "Sede Norte",
-      items: [
-        { productoId: 3, nombre: "Pre-Entreno", cantidadPedida: 10 },
-      ]
     }
   ])
   const [viewingPedido, setViewingPedido] = useState<PedidoHistorial | null>(null)
+  const [solicitudesEntrantes, setSolicitudesEntrantes] = useState<PedidoHistorial[]>([
+    {
+      id: "REQ-203948",
+      fecha: new Date().toLocaleDateString("es-AR"),
+      estado: "pendiente",
+      tipo: "interno",
+      destino: "Sede Central", // Nosotros
+      origen: "Sede Norte",    // Quien pide
+      items: [
+        { productoId: 1, nombre: "Agua Mineral 500ml", cantidadPedida: 10 },
+        { productoId: 4, nombre: "Bebida Isotónica", cantidadPedida: 5 },
+      ]
+    }
+  ])
+  const [viewingSolicitud, setViewingSolicitud] = useState<PedidoHistorial | null>(null)
+  const [solicitudEntregas, setSolicitudEntregas] = useState<Record<number, number>>({})
+  const [solicitudObservacion, setSolicitudObservacion] = useState("")
   const [view, setView] = useState<KioscoView>(
   initialView === "stock" && openOrderDialogOnMount ? "reposicion" : (initialView || "hub")
 ) 
@@ -1564,7 +1605,52 @@ const filteredAndSortedProductos = useMemo(() => {
                 )}
               </CardContent>
             </Card>
+            {/* Solicitudes Entrantes */}
+            <Card className="border-border bg-card">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Bell className="w-5 h-5 text-[#f59e0b]" />
+                  Solicitudes Entrantes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
+                   {solicitudesEntrantes.map(solicitud => (
+                     <div 
+                       key={solicitud.id} 
+                       className="p-3 rounded-lg border border-border bg-secondary/30 hover:bg-secondary/60 cursor-pointer transition-all hover:scale-[1.02]"
+                       onClick={() => {
+                         setViewingSolicitud(solicitud);
+                         // Inicializamos las cantidades a entregar por defecto con lo que pidieron
+                         const initial: Record<number, number> = {};
+                         solicitud.items.forEach(i => initial[i.productoId] = i.cantidadEntregada ?? i.cantidadPedida);
+                         setSolicitudEntregas(initial);
+                         setSolicitudObservacion(solicitud.observacion || "");
+                       }}
+                     >
+                       <div className="flex justify-between items-start mb-1">
+                         <span className="font-mono text-sm font-bold text-foreground">{solicitud.id}</span>
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                           solicitud.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
+                           solicitud.estado === 'en preparacion' ? 'bg-blue-500/20 text-blue-500' : 
+                           solicitud.estado === 'rechazado' ? 'bg-destructive/20 text-destructive' : 
+                           'bg-primary/20 text-primary'}`}>
+                           {solicitud.estado}
+                         </span>
+                       </div>
+                       <p className="text-xs text-muted-foreground flex items-center gap-1">
+                         De: {solicitud.origen} • {solicitud.items.length} prod(s)
+                       </p>
+                     </div>
+                   ))}
+                   {solicitudesEntrantes.length === 0 && (
+                     <p className="text-center text-sm text-muted-foreground">No hay solicitudes nuevas.</p>
+                   )}
+                 </div>
+              </CardContent>
+            </Card>
 
+            
             {/* Historial de Pedidos */}
             <Card className="border-border bg-card">
               <CardHeader className="pb-3 border-b border-border">
@@ -1583,7 +1669,12 @@ const filteredAndSortedProductos = useMemo(() => {
                      >
                        <div className="flex justify-between items-start mb-1">
                          <span className="font-mono text-sm font-bold text-foreground">{pedido.id}</span>
-                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${pedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'bg-primary/20 text-primary'}`}>
+                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                           pedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 
+                           pedido.estado === 'en preparacion' ? 'bg-blue-500/20 text-blue-500' : 
+                           pedido.estado === 'rechazado' ? 'bg-destructive/20 text-destructive' : 
+                           'bg-primary/20 text-primary'
+                         }`}>
                            {pedido.estado}
                          </span>
                        </div>
@@ -2123,6 +2214,177 @@ const filteredAndSortedProductos = useMemo(() => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Modal: Detalle de Solicitud Entrante */}
+      <Dialog open={!!viewingSolicitud} onOpenChange={(open) => !open && setViewingSolicitud(null)}>
+        <DialogContent className="bg-card border-border sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2 text-foreground">
+              <Bell className="w-5 h-5 text-[#f59e0b]" />
+              Solicitud de Stock: {viewingSolicitud?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Solicitado por <strong className="text-foreground">{viewingSolicitud?.origen}</strong> el {viewingSolicitud?.fecha}
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewingSolicitud && (
+            <div className="space-y-4 py-2">
+               <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border">
+                 <div className="flex items-center gap-2">
+                   <span className="text-sm font-medium text-foreground">Estado:</span>
+                   <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider ${
+                     viewingSolicitud.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' :
+                     viewingSolicitud.estado === 'en preparacion' ? 'bg-blue-500/20 text-blue-500' :
+                     viewingSolicitud.estado === 'rechazado' ? 'bg-destructive/20 text-destructive' :
+                     'bg-primary/20 text-primary'
+                   }`}>
+                     {viewingSolicitud.estado}
+                   </span>
+                 </div>
+               </div>
+
+               <div className="border border-border rounded-lg overflow-hidden">
+                 <Table>
+                   <TableHeader className="bg-secondary/50">
+                     <TableRow className="border-border">
+                       <TableHead className="font-semibold text-muted-foreground">Producto</TableHead>
+                       <TableHead className="text-center font-semibold text-muted-foreground">Solicitado</TableHead>
+                       <TableHead className="text-center font-semibold text-muted-foreground">Mi Stock</TableHead>
+                       <TableHead className="text-center font-semibold text-muted-foreground">A Enviar</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {viewingSolicitud.items.map((item, idx) => {
+                       const miStock = productos.find(p => p.nombre === item.nombre)?.stock || 0;
+                       const aEntregar = solicitudEntregas[item.productoId] ?? item.cantidadPedida;
+                       const sinStock = miStock < aEntregar;
+
+                       return (
+                         <TableRow key={idx} className="border-border">
+                           <TableCell className="text-foreground font-medium">{item.nombre}</TableCell>
+                           <TableCell className="text-center text-foreground font-medium">{item.cantidadPedida}</TableCell>
+                           <TableCell className="text-center font-bold text-muted-foreground">{miStock}</TableCell>
+                           <TableCell className="text-center">
+                             {viewingSolicitud.estado === "pendiente" ? (
+                               <Input
+                                 type="number"
+                                 min="0"
+                                 max={miStock} // Limita que no puedas mandar más del stock que tienes
+                                 className={`w-20 mx-auto h-8 text-center font-bold text-sm ${sinStock ? 'border-destructive text-destructive' : 'border-border'}`}
+                                 value={aEntregar}
+                                 onChange={(e) => {
+                                   const val = parseInt(e.target.value);
+                                   setSolicitudEntregas({...solicitudEntregas, [item.productoId]: isNaN(val) ? 0 : val})
+                                 }}
+                               />
+                             ) : (
+                               <span className="font-bold text-primary text-lg">{item.cantidadEntregada}</span>
+                             )}
+                           </TableCell>
+                         </TableRow>
+                       )
+                     })}
+                   </TableBody>
+                 </Table>
+               </div>
+
+               <div className="space-y-2">
+                 <Label>Observaciones / Respuesta a la sucursal</Label>
+                 <Input
+                   placeholder="Ej: Solo envío 5 aguas porque me quedo sin stock..."
+                   value={solicitudObservacion}
+                   onChange={(e) => setSolicitudObservacion(e.target.value)}
+                   disabled={viewingSolicitud.estado !== "pendiente"}
+                   className="bg-input border-border"
+                 />
+               </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:justify-between w-full">
+            {viewingSolicitud?.estado === "pendiente" ? (
+              <>
+                <Button
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => {
+                    const updated = solicitudesEntrantes.map((s): PedidoHistorial => 
+                      s.id === viewingSolicitud.id ? { ...s, estado: "rechazado" as "rechazado", observacion: solicitudObservacion } : s
+                    );
+                    setSolicitudesEntrantes(updated);
+                    setViewingSolicitud({...viewingSolicitud, estado: "rechazado" as "rechazado", observacion: solicitudObservacion});
+                    showToast("Solicitud rechazada.", "info");
+                  }}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Rechazar
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="border-border" onClick={() => setViewingSolicitud(null)}>Cancelar</Button>
+                  <Button
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      const updated = solicitudesEntrantes.map((s): PedidoHistorial => {
+                        if (s.id === viewingSolicitud.id) {
+                          return {
+                            ...s,
+                            estado: "en preparacion" as "en preparacion",
+                            observacion: solicitudObservacion,
+                            items: s.items.map(i => ({ ...i, cantidadEntregada: Math.min(solicitudEntregas[i.productoId] || 0, productos.find(p => p.id === i.productoId)?.stock || 0) }))
+                          }
+                        }
+                        return s;
+                      });
+                      setSolicitudesEntrantes(updated);
+                      setViewingSolicitud(updated.find(s => s.id === viewingSolicitud.id) || null);
+                      showToast("Solicitud aceptada. El pedido pasó a preparación.", "success");
+                    }}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Aceptar y Preparar
+                  </Button>
+                </div>
+              </>
+            ) : viewingSolicitud?.estado === "en preparacion" ? (
+              <div className="flex justify-end w-full gap-2">
+                <Button variant="outline" className="border-border" onClick={() => setViewingSolicitud(null)}>Cerrar</Button>
+                <Button
+                  className="bg-[#C2D8C4] text-[#222222] hover:bg-[#C2D8C4]/90 font-bold"
+                  onClick={() => {
+                    // 1. Descontamos el stock de la sucursal local
+                    const updatedProductos = [...productos];
+                    viewingSolicitud.items.forEach(item => {
+                      const idx = updatedProductos.findIndex(p => p.id === item.productoId);
+                      if (idx !== -1) {
+                        updatedProductos[idx] = {
+                          ...updatedProductos[idx],
+                          stock: Math.max(0, updatedProductos[idx].stock - (item.cantidadEntregada || 0))
+                        };
+                      }
+                    });
+                    setProductos(updatedProductos);
+
+                    // 2. Marcamos como realizado
+                    const updated = solicitudesEntrantes.map((s): PedidoHistorial => 
+                      s.id === viewingSolicitud.id ? { ...s, estado: "realizado" as "realizado" } : s
+                    );
+                    setSolicitudesEntrantes(updated);
+                    setViewingSolicitud({...viewingSolicitud, estado: "realizado" as "realizado"});
+                    showToast("Mercadería despachada. Stock local descontado.", "success");
+                  }}
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  Marcar como Enviado
+                </Button>
+              </div>
+            ) : (
+              <div className="flex justify-end w-full">
+                <Button variant="outline" className="border-border" onClick={() => setViewingSolicitud(null)}>Cerrar</Button>
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Modal: Detalle de Historial de Pedidos */}
       <Dialog open={!!viewingPedido} onOpenChange={(open) => !open && setViewingPedido(null)}>
         <DialogContent className="bg-card border-border sm:max-w-[500px]">
@@ -2141,7 +2403,12 @@ const filteredAndSortedProductos = useMemo(() => {
                <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-lg border border-border">
                  <div className="flex items-center gap-2">
                    <span className="text-sm font-medium text-foreground">Estado:</span>
-                   <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider ${viewingPedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' : 'bg-primary/20 text-primary'}`}>
+                   <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider ${
+                     viewingPedido.estado === 'pendiente' ? 'bg-[#f59e0b]/20 text-[#f59e0b]' :
+                     viewingPedido.estado === 'en preparacion' ? 'bg-blue-500/20 text-blue-500' :
+                     viewingPedido.estado === 'rechazado' ? 'bg-destructive/20 text-destructive' :
+                     'bg-primary/20 text-primary'
+                   }`}>
                      {viewingPedido.estado}
                    </span>
                  </div>
@@ -2160,18 +2427,18 @@ const filteredAndSortedProductos = useMemo(() => {
                  </div>
                )}
                
-               <div className="border border-border rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                  <Table>
                    <TableHeader className="bg-secondary/50">
                      <TableRow className="border-border">
                        <TableHead className="font-semibold text-muted-foreground">Producto</TableHead>
-                       <TableHead className="text-center font-semibold text-muted-foreground">Cantidad Pedida</TableHead>
-                       {viewingPedido.estado === "realizado" && <TableHead className="text-center font-semibold text-muted-foreground">Entregada</TableHead>}
+                       <TableHead className="text-center font-semibold text-muted-foreground">Pedida</TableHead>
+                       {(viewingPedido.estado === "realizado" || viewingPedido.estado === "en preparacion") && <TableHead className="text-center font-semibold text-muted-foreground">Confirmada</TableHead>}
                      </TableRow>
                    </TableHeader>
                    <TableBody>
                      {viewingPedido.items.map((item, idx) => {
-                       const isMissing = viewingPedido.estado === "realizado" && item.cantidadEntregada !== undefined && item.cantidadEntregada < item.cantidadPedida;
+                       const isMissing = (viewingPedido.estado === "realizado" || viewingPedido.estado === "en preparacion") && item.cantidadEntregada !== undefined && item.cantidadEntregada < item.cantidadPedida;
                        
                        return (
                          <TableRow key={idx} className={`border-border ${isMissing ? "bg-destructive/10 hover:bg-destructive/15" : ""}`}>
@@ -2180,7 +2447,7 @@ const filteredAndSortedProductos = useMemo(() => {
                              {isMissing && <p className="text-[10px] uppercase font-bold text-destructive mt-0.5">Incompleto</p>}
                            </TableCell>
                            <TableCell className="text-center text-foreground font-medium">{item.cantidadPedida}</TableCell>
-                           {viewingPedido.estado === "realizado" && (
+                           {(viewingPedido.estado === "realizado" || viewingPedido.estado === "en preparacion") && (
                              <TableCell className={`text-center font-black text-lg ${isMissing ? "text-destructive" : "text-primary"}`}>
                                {item.cantidadEntregada !== undefined ? item.cantidadEntregada : item.cantidadPedida}
                              </TableCell>
